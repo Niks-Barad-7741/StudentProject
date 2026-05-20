@@ -30,6 +30,13 @@ namespace StudentProj.Repository
            return await _context.Student.ToListAsync();
         }
 
+        public async Task<Student> GetStudentbyemailasync(string email)
+        {
+            return await _context.Student
+                .Where(s => s.Email.ToLower().Equals(email.ToLower()))
+                .FirstOrDefaultAsync();
+        }
+
         public async Task<Student> GetStudentbyid(int id)
         {
             return await _context.Student.Where(student => student.Id == id).FirstOrDefaultAsync();

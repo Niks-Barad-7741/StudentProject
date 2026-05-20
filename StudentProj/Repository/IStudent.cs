@@ -9,6 +9,7 @@ namespace StudentProj.Repository
         Task<int> Createstudentasync(Student student);
         Task<bool> UpdateStudentasync(int id,Student student);
         Task<Student> Getstudentbynameasync(string name);
+        Task<Student> GetStudentbyemailasync(string email);
         Task<bool> DeleteStudentasync(Student student);
 
     }
