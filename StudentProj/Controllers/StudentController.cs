@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using StudentProj.DTO;
@@ -9,6 +10,7 @@ namespace StudentProj.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class StudentController : ControllerBase
     {
         private readonly IStudent _student;
@@ -19,6 +21,7 @@ namespace StudentProj.Controllers
 
         [HttpGet("Getall")]
         [ProducesResponseType(StatusCodes.Status200OK)]
+        //[AllowAnonymous]
         public async Task<ActionResult<IEnumerable<StudentDTO>>> GetAll() 
         {
             var students =await _student.GetAllStudentsasync();
