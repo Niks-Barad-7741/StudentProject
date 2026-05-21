@@ -23,36 +23,105 @@ namespace StudentProj.Controllers
         [HttpPost("Login")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        //public async Task<ActionResult> Login(LoginDTO dto)
+        //{
+        //    // find student by email
+        //    var student = await _login.GetStudentbyemailasync(dto.Email);
+        //    if (student == null)
+        //        return Unauthorized("Invalid email or password.");
+
+        //    // verify password using BCrypt
+        //    bool isValid = BCrypt.Net.BCrypt.Verify(dto.Password, student.PasswordHash);
+        //    if (!isValid)
+        //        return Unauthorized("Invalid email or password.");
+
+        //    // generate token
+        //    var token = GenerateToken(student);
+        //    return Ok(new { email = student.Email,token = token});
+        //    //return Ok(new { student.Email, token });
+
+        //}
+        //private string GenerateToken(Models.Student student)
+        //{
+        //    var key = new SymmetricSecurityKey(
+        //        Encoding.UTF8.GetBytes(_config["JWT-Token"]));
+
+        //    var credentials = new SigningCredentials(
+        //        key, SecurityAlgorithms.HmacSha256);
+
+        //    var claims = new[]
+        //    {
+        //        new Claim("Id", student.Id.ToString()),
+        //        new Claim("Email", student.Email),
+        //        new Claim("Name", student.Name)
+        //    };
+
+        //    var token = new JwtSecurityToken(
+        //        claims: claims,
+        //        expires: DateTime.Now.AddHours(1),
+        //        signingCredentials: credentials
+        //    );
+
+        //    return new JwtSecurityTokenHandler().WriteToken(token);
+        //}
         public async Task<ActionResult> Login(LoginDTO dto)
         {
-            // find student by email
-            var student = await _login.GetStudentbyemailasync(dto.Email);
+            // find student
+            var student = await _login
+                .GetStudentbyemailasync(dto.Email);
             if (student == null)
-                return Unauthorized("Invalid email or password.");
+                return Unauthorized(
+                    "Invalid email or password.");
 
-            // verify password using BCrypt
-            bool isValid = BCrypt.Net.BCrypt.Verify(dto.Password, student.PasswordHash);
+            // verify password
+            bool isValid = BCrypt.Net.BCrypt
+                .Verify(dto.Password, student.PasswordHash);
             if (!isValid)
-                return Unauthorized("Invalid email or password.");
+                return Unauthorized(
+                    "Invalid email or password.");
 
-            // generate token
-            var token = GenerateToken(student);
-            return Ok(new { token = token });
+            // ✅ get roles from database
+            var roles = await _login
+                .GetStudentRolesAsync(student.Id);
+
+            // ✅ generate token WITH roles
+            var token = GenerateToken(student, roles);
+
+            return Ok(new AuthResponseDTO
+            {
+                Name = student.Name,
+                Email = student.Email,
+                Token = token,
+                Role = string.Join(",", roles),
+                Message = "Login successful!"
+            });
         }
-        private string GenerateToken(Models.Student student)
+
+        private string GenerateToken(
+            Models.Student student,
+            List<string> roles)
         {
             var key = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(_config["JWT-Token"]));
+                Encoding.UTF8.GetBytes(
+                    _config["JWT-Token"]));
 
             var credentials = new SigningCredentials(
                 key, SecurityAlgorithms.HmacSha256);
 
-            var claims = new[]
+            // base claims
+            var claims = new List<Claim>
             {
-                new Claim("Id", student.Id.ToString()),
+                new Claim("Id",    student.Id.ToString()),
                 new Claim("Email", student.Email),
-                new Claim("Name", student.Name)
+                new Claim("Name",  student.Name)
             };
+
+            // ✅ add roles as claims
+            foreach (var role in roles)
+            {
+                claims.Add(new Claim(
+                    ClaimTypes.Role, role));
+            }
 
             var token = new JwtSecurityToken(
                 claims: claims,
@@ -60,7 +129,8 @@ namespace StudentProj.Controllers
                 signingCredentials: credentials
             );
 
-            return new JwtSecurityTokenHandler().WriteToken(token);
+            return new JwtSecurityTokenHandler()
+                .WriteToken(token);
         }
     }
 }

@@ -17,5 +17,13 @@ namespace StudentProj.Repository
                 .Where(s => s.Email.ToLower().Equals(email.ToLower()))
                 .FirstOrDefaultAsync();
         }
+        public async Task<List<string>> GetStudentRolesAsync(
+            int studentId)
+        {
+            return await _dbcontext.StudentRoles
+                .Where(sr => sr.StudentId == studentId)
+                .Select(sr => sr.Role.RoleName)
+                .ToListAsync();
+        }
     }
 }

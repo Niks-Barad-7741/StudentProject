@@ -17,6 +17,7 @@ builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddScoped<IValidator<StudentDTO>, StudentValidator>();
 builder.Services.AddScoped<IValidator<LoginDTO>, LoginValidator>();
 builder.Services.AddScoped<IValidator<RegisterDTO>, RegisterValidator>();
+builder.Services.AddScoped<IValidator<AssignRoleDTO>, AssignRoleValidator>();
 
 builder.Services.AddControllers().AddNewtonsoftJson();
 
@@ -80,7 +81,7 @@ builder.Services.AddDbContext<StudentDbcontext>(options =>
 
 //Repository Dependency Injection
 builder.Services.AddScoped<IStudent, StudentRepository>();
-builder.Services.AddScoped<IAuthRepository, AuthRepository>();
+builder.Services.AddScoped<IRegisterRepository, RegisterRepository>();
 builder.Services.AddScoped<ILoginRepository, LoginRepository>();
 
 var app = builder.Build();
