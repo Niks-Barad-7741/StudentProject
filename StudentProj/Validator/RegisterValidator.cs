@@ -28,8 +28,7 @@ namespace StudentProj.Validator
                 .WithMessage("Address is required")
                 .NotNull()
                 .WithMessage("Address cannot be null")
-                .MaximumLength(200)
-                .WithMessage("Address Cannot Exceed 200 Characters");
+                .MaximumLength(200);
 
             RuleFor(x => x.Phone)
                 .NotEmpty()
@@ -37,7 +36,6 @@ namespace StudentProj.Validator
                 .NotNull()
                 .WithMessage("Phone number cannot be null")
                 .Matches(@"^\d{10}$")
-                .WithMessage("Phone number must be exactly 10 digits")
                 .MaximumLength(10);
 
 
