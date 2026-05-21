@@ -29,5 +29,7 @@ namespace StudentProj.Models
 
         [Required]
         public string PasswordHash { get; set; }
+
+        public ICollection<StudentRoles> StudentRoles { get; set; }
     }
 }
