@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using StudentProj.Data;
+using StudentProj.DTO;
 using StudentProj.Models;
 
 namespace StudentProj.Repository
@@ -25,26 +26,69 @@ namespace StudentProj.Repository
             return true;
         }
 
-        public async Task<List<Student>> GetAllStudentsasync()
+        public async Task<List<StudentDTO>> GetAllStudentsasync()
         {
-           return await _context.Student.ToListAsync();
+            //return await _context.Student.ToListAsync();
+            //   return await _context.Student
+            //.Include(x => x.StudentRoles)
+            //.ThenInclude(x => x.Role)
+            //.ToListAsync();
+            return await _context.Student
+        .Select(x => new StudentDTO
+        {
+            Name = x.Name,
+            Email = x.Email,
+            Address = x.Address,
+            Phone = x.Phone
+        })
+        .ToListAsync();
         }
 
-        public async Task<Student> GetStudentbyemailasync(string email)
+        public async Task<StudentDTO> GetStudentbyemailasync(string email)
         {
+            //return await _context.Student
+            //    .Where(s => s.Email.ToLower().Equals(email.ToLower()))
+            //    .FirstOrDefaultAsync();
             return await _context.Student
-                .Where(s => s.Email.ToLower().Equals(email.ToLower()))
-                .FirstOrDefaultAsync();
+       .Where(x => x.Email.ToLower() == email.ToLower())
+       .Select(x => new StudentDTO
+       {
+           Name = x.Name,
+           Email = x.Email,
+           Address = x.Address,
+           Phone = x.Phone
+       })
+       .FirstOrDefaultAsync();
         }
 
         public async Task<Student> GetStudentbyid(int id)
         {
             return await _context.Student.Where(student => student.Id == id).FirstOrDefaultAsync();
+        //    return await _context.Student
+        //.Where(x => x.Id == id)
+        //.Select(x => new StudentDTO
+        //{
+        //    Name = x.Name,
+        //    Email = x.Email,
+        //    Address = x.Address,
+        //    Phone = x.Phone
+        //})
+        //.FirstOrDefaultAsync();
         }
 
         public async Task<Student> Getstudentbynameasync(string name)
         {
-            return await _context.Student.Where(student => student.Name.ToLower().Equals(name.ToLower())).FirstOrDefaultAsync();
+            return await _context.Student.Where(student => student.Name.ToLower().Contains(name.ToLower())).FirstOrDefaultAsync();
+        //    return await _context.Student
+        //.Where(x => x.Name.ToLower().Contains(name.ToLower()))
+        //.Select(x => new StudentDTO
+        //{
+        //    Name = x.Name,
+        //    Email = x.Email,
+        //    Address = x.Address,
+        //    Phone = x.Phone
+        //})
+        //.FirstOrDefaultAsync();
         }
 
         public async Task<bool> UpdateStudentasync(int id, Student student)
