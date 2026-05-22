@@ -10,7 +10,7 @@ namespace StudentProj.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "Admin")]
+    //[Authorize(Roles = "Admin")]
     public class StudentController : ControllerBase
     {
         private readonly IStudent _student;
@@ -20,6 +20,7 @@ namespace StudentProj.Controllers
         }
 
         [HttpGet("Getall")]
+        [Authorize(Roles = "Admin,User")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         //[AllowAnonymous]
         public async Task<ActionResult<IEnumerable<StudentDTO>>> GetAll() 
@@ -28,6 +29,7 @@ namespace StudentProj.Controllers
             return Ok(students);
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpGet("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -42,7 +44,7 @@ namespace StudentProj.Controllers
 
         }
 
-
+        [Authorize(Roles = "Admin")]
         [HttpPost("Createstudent")]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -67,6 +69,7 @@ namespace StudentProj.Controllers
             return CreatedAtAction(nameof(GetbyId), new { id = student.Id }, student);
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpGet("GetbyName/{name}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -81,7 +84,7 @@ namespace StudentProj.Controllers
         }
 
 
-
+        [Authorize(Roles = "Admin")]
         [HttpPut("UpdateStudent/{id}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -105,6 +108,7 @@ namespace StudentProj.Controllers
             return NoContent();
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPatch("UpdateStudentPartial/{id}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]  
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -144,7 +148,7 @@ namespace StudentProj.Controllers
         }
 
 
-
+        [Authorize(Roles = "Admin")]
         [HttpDelete("DeletebyId/{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]

@@ -3,6 +3,7 @@ using StudentProj.DTO;
 using StudentProj.Models;
 using StudentProj.Repository;
 using BCrypt.Net;
+using StudentProj.Services;
 
 namespace StudentProj.Controllers
 {
@@ -12,10 +13,12 @@ namespace StudentProj.Controllers
     public class RegisterController : ControllerBase
     {
         private readonly IRegisterRepository _auth;
+        private readonly JwtService _JWT_service;
 
-        public RegisterController(IRegisterRepository auth) 
+        public RegisterController(IRegisterRepository auth,JwtService JWT_service) 
         {
             _auth = auth;
+            _JWT_service = JWT_service;
         }
 
         [HttpPost("Register")]
@@ -42,11 +45,11 @@ namespace StudentProj.Controllers
         public async Task<ActionResult<RegisterResponseDTO>> Register(
             RegisterDTO dto)
         {
-            // check email exists
+            // check Phone Number exists
             var existing = await _auth
-                .GetStudentbyemailasync(dto.Email);
+                .GetStudentbyphoneasync(dto.Phone);
             if (existing != null)
-                return BadRequest("Email already registered.");
+                return BadRequest("Phone number already registered!");
 
             // create student
             var student = new Student
@@ -63,14 +66,18 @@ namespace StudentProj.Controllers
 
             // ✅ assign Student role by default
             var studentRole = await _auth
-                .GetRoleByNameAsync("User");
+                .GetRoleByIdAsync(2);
             if (studentRole != null)
                 await _auth.AssignRoleAsync(
                     student.Id, studentRole.Id);
 
+            var roles = await _auth.GetStudentRolesAsync(student.Id);
+
+            var token = _JWT_service.GenerateToken(student, roles);
             return Ok(new RegisterResponseDTO
             {
                 Name = student.Name,
+                Token = token,
                 Email = student.Email,
                 Role = studentRole.RoleName
             });
@@ -102,14 +109,14 @@ namespace StudentProj.Controllers
                 return NotFound("Student not found.");
 
             // check valid role
-            var role = await _auth.GetRoleByNameAsync(dto.RoleName);
+            var role = await _auth.GetRoleByIdAsync(dto.RoleId);
             if (role == null)
                 return BadRequest("Invalid role. Only Admin or User allowed.");
 
             // update role
-            await _auth.UpdateStudentRoleAsync(dto.StudentId, dto.RoleName);
+            await _auth.UpdateStudentRoleAsync(dto.StudentId, dto.RoleId);
 
-            return Ok($"Role {dto.RoleName} assigned successfully.");
+            return Ok($"Role {dto.RoleId} assigned successfully.");
         }
     }
 }

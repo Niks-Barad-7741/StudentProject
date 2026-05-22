@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using StudentProj.DTO;
 using StudentProj.Repository;
+using StudentProj.Services;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -15,10 +16,12 @@ namespace StudentProj.Controllers
     {
         private readonly ILoginRepository _login;
         private readonly IConfiguration _config;
-        public LoginController(ILoginRepository login,IConfiguration config) 
+        private readonly JwtService _JWT_service;
+        public LoginController(ILoginRepository login,IConfiguration config,JwtService jwtService) 
         {
             _login = login;
             _config = config;
+            _JWT_service = jwtService;
         }
         [HttpPost("Login")]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -80,12 +83,14 @@ namespace StudentProj.Controllers
                 return Unauthorized(
                     "Invalid email or password.");
 
-            // ✅ get roles from database
-            var roles = await _login
-                .GetStudentRolesAsync(student.Id);
+            var roles = await _login.GetStudentRolesAsync(student.Id);
+            var token = _JWT_service.GenerateToken(student, roles);
+            //// ✅ get roles from database
+            //var roles = await _login
+            //    .GetStudentRolesAsync(student.Id);
 
-            // ✅ generate token WITH roles
-            var token = GenerateToken(student, roles);
+            //// ✅ generate token WITH roles
+            //var token = GenerateToken(student, roles);
 
             return Ok(new AuthResponseDTO
             {
@@ -97,40 +102,40 @@ namespace StudentProj.Controllers
             });
         }
 
-        private string GenerateToken(
-            Models.Student student,
-            List<string> roles)
-        {
-            var key = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(
-                    _config["JWT-Token"]));
+        //private string GenerateToken(
+        //    Models.Student student,
+        //    List<string> roles)
+        //{
+        //    var key = new SymmetricSecurityKey(
+        //        Encoding.UTF8.GetBytes(
+        //            _config["JWT-Token"]));
 
-            var credentials = new SigningCredentials(
-                key, SecurityAlgorithms.HmacSha256);
+        //    var credentials = new SigningCredentials(
+        //        key, SecurityAlgorithms.HmacSha256);
 
-            // base claims
-            var claims = new List<Claim>
-            {
-                new Claim("Id",    student.Id.ToString()),
-                new Claim("Email", student.Email),
-                new Claim("Name",  student.Name)
-            };
+        //    // base claims
+        //    var claims = new List<Claim>
+        //    {
+        //        new Claim("Id",    student.Id.ToString()),
+        //        new Claim("Email", student.Email),
+        //        new Claim("Name",  student.Name)
+        //    };
 
-            // ✅ add roles as claims
-            foreach (var role in roles)
-            {
-                claims.Add(new Claim(
-                    ClaimTypes.Role, role));
-            }
+        //    // ✅ add roles as claims
+        //    foreach (var role in roles)
+        //    {
+        //        claims.Add(new Claim(
+        //            ClaimTypes.Role, role));
+        //    }
 
-            var token = new JwtSecurityToken(
-                claims: claims,
-                expires: DateTime.Now.AddHours(1),
-                signingCredentials: credentials
-            );
+        //    var token = new JwtSecurityToken(
+        //        claims: claims,
+        //        expires: DateTime.Now.AddHours(1),
+        //        signingCredentials: credentials
+        //    );
 
-            return new JwtSecurityTokenHandler()
-                .WriteToken(token);
-        }
+        //    return new JwtSecurityTokenHandler()
+        //        .WriteToken(token);
+        //}
     }
 }
