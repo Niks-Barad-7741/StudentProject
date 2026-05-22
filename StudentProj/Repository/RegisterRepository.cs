@@ -12,10 +12,13 @@ namespace StudentProj.Repository
         {
             _dbcontext = dbcontext;
         }
-        public async Task<Student> GetStudentbyemailasync(string email)
+        public async Task<Student> GetStudentbyphoneasync(string phone)
         {
+            //return await _dbcontext.Student
+            //    .Where(s => s.Email.ToLower().Equals(email.ToLower()))
+            //    .FirstOrDefaultAsync();
             return await _dbcontext.Student
-                .Where(s => s.Email.ToLower().Equals(email.ToLower()))
+                .Where(s => s.Phone.Equals(phone))
                 .FirstOrDefaultAsync();
         }
         public async Task<bool> RegisterAsync(Student student)
@@ -78,6 +81,38 @@ namespace StudentProj.Repository
         {
             return await _dbcontext.Student
                 .FirstOrDefaultAsync(x => x.Id == studentId);
+        }
+
+        public async Task<Roles> GetRoleByIdAsync(int roleId)
+        {
+            return await _dbcontext.Roles
+                .FirstOrDefaultAsync(r => r.Id == roleId);
+        }
+
+        public async Task UpdateStudentRoleAsync(int studentId, int roleId)
+        {
+            var role = await GetRoleByIdAsync(roleId);
+
+            if (role == null)
+                return;
+
+            var studentRole = await _dbcontext.StudentRoles
+                .FirstOrDefaultAsync(sr => sr.StudentId == studentId);
+
+            if (studentRole != null)
+            {
+                studentRole.RoleId = roleId;
+            }
+            else
+            {
+                _dbcontext.StudentRoles.Add(new StudentRoles
+                {
+                    StudentId = studentId,
+                    RoleId = roleId
+                });
+            }
+
+            await _dbcontext.SaveChangesAsync();
         }
     }
 }

@@ -11,10 +11,13 @@ namespace StudentProj.Validator
                 .GreaterThan(0)
                 .WithMessage("Student Id must be greater than 0");
 
-            RuleFor(x => x.RoleName)
-                .NotEmpty()
-                .WithMessage("Role name is required")
-                .Must(role => role == "Admin" || role == "User")
+            //RuleFor(x => x.RoleId)
+            //    .NotEmpty()
+            //    .WithMessage("Role name is required")
+            //    .Must(role => role == "Admin" || role == "User")
+            //    .WithMessage("Role must be Admin or User");
+            RuleFor(x => x.RoleId)
+                .InclusiveBetween(1, 5)
                 .WithMessage("Role must be Admin or User");
         }
     }
