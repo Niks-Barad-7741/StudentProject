@@ -10,15 +10,17 @@ using StudentProj.Validator;
 using System.Text;
 using Microsoft.OpenApi.Models;
 using StudentProj.Services;
+using StudentProj.Validators;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// Add validator services to the container.
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddScoped<IValidator<StudentDTO>, StudentValidator>();
 builder.Services.AddScoped<IValidator<LoginDTO>, LoginValidator>();
 builder.Services.AddScoped<IValidator<RegisterDTO>, RegisterValidator>();
 builder.Services.AddScoped<IValidator<AssignRoleDTO>, AssignRoleValidator>();
+builder.Services.AddScoped<IValidator<RoleDTO>, RoleValidator>();
 
 
 builder.Services.AddControllers().AddNewtonsoftJson();
@@ -85,6 +87,7 @@ builder.Services.AddDbContext<StudentDbcontext>(options =>
 builder.Services.AddScoped<IStudent, StudentRepository>();
 builder.Services.AddScoped<IRegisterRepository, RegisterRepository>();
 builder.Services.AddScoped<ILoginRepository, LoginRepository>();
+builder.Services.AddScoped<IRoleRepository, RoleRpeository>();
 builder.Services.AddScoped<JwtService>();
 
 var app = builder.Build();
