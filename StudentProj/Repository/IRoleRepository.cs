@@ -21,5 +21,7 @@ namespace StudentProj.Repository
 
         // check duplicate
         Task<bool> RoleExistsAsync(string roleName);
+
+        Task<bool> UpdateRoleAsync(int id, Roles role);
     }
 }

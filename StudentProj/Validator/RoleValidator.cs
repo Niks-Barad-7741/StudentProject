@@ -16,9 +16,9 @@ namespace StudentProj.Validators
                 .NotNull()
                 .WithMessage("Role name cannot be null!")
 
-                // min 3 characters
-                .MinimumLength(3)
-                .WithMessage("Role name must be at least 3 characters!")
+                // min 2 characters
+                .MinimumLength(2)
+                .WithMessage("Role name must be at least 2 characters!")
 
                 // max 12 characters
                 .MaximumLength(12)

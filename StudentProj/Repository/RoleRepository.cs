@@ -4,11 +4,11 @@ using StudentProj.Models;
 
 namespace StudentProj.Repository
 {
-    public class RoleRpeository : IRoleRepository
+    public class RoleRepository : IRoleRepository
     {
         private readonly StudentDbcontext _dbcontext;
 
-        public RoleRpeository(StudentDbcontext dbcontext)
+        public RoleRepository(StudentDbcontext dbcontext)
         {
             _dbcontext = dbcontext;
         }
@@ -17,6 +17,7 @@ namespace StudentProj.Repository
         public async Task<List<Roles>> GetAllRolesAsync()
         {
             return await _dbcontext.Roles
+                .Where(r => !r.IsDeleted)
                 .ToListAsync();
         }
 
@@ -24,7 +25,7 @@ namespace StudentProj.Repository
         public async Task<Roles?> GetRoleByIdAsync(int id)
         {
             return await _dbcontext.Roles
-                .Where(r => r.Id == id)
+                .Where(r => r.Id == id && !r.IsDeleted)
                 .FirstOrDefaultAsync();
         }
 
@@ -33,8 +34,8 @@ namespace StudentProj.Repository
             string roleName)
         {
             return await _dbcontext.Roles
-                .Where(r => r.RoleName.ToLower()
-                    .Equals(roleName.ToLower()))
+                .Where(r => r.RoleName.ToLower() 
+                    .Equals(roleName.ToLower()) && !r.IsDeleted)
                 .FirstOrDefaultAsync();
         }
 
@@ -52,9 +53,14 @@ namespace StudentProj.Repository
             var role = await GetRoleByIdAsync(id);
             if (role == null) return false;
 
-            _dbcontext.Roles.Remove(role);
+            role.IsDeleted = true;
+            role.DeletedAt = DateTime.UtcNow;
+            _dbcontext.Roles.Update(role);
             await _dbcontext.SaveChangesAsync();
             return true;
+            //_dbcontext.Roles.Remove(role);
+            //await _dbcontext.SaveChangesAsync();
+            //return true;
         }
 
         // check duplicate - case insensitive
@@ -62,7 +68,15 @@ namespace StudentProj.Repository
         {
             return await _dbcontext.Roles
                 .AnyAsync(r => r.RoleName.ToLower()
-                    .Equals(roleName.ToLower()));
+                    .Equals(roleName.ToLower()) && !r.IsDeleted);
+        }
+
+
+        public async Task<bool> UpdateRoleAsync(int id,Roles role) 
+        {
+            _dbcontext.Roles.Update(role);
+            await _dbcontext.SaveChangesAsync();
+            return role.Id == id;
         }
     }
 }

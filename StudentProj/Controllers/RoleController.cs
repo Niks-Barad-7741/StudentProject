@@ -2,16 +2,19 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using StudentProj.Attributes;
 using StudentProj.DTO;
 using StudentProj.Models;
 using StudentProj.Repository;
+using System.ComponentModel.DataAnnotations;
 using System.Data;
 
 namespace StudentProj.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "Admin")] // ✅ Admin only!
+    //[Authorize(Roles = "Super Admin,Admin")] 
+    [HasPermission("manage:roles")]
     public class RoleController : ControllerBase
     {
         private readonly IRoleRepository _role;
@@ -126,5 +129,44 @@ namespace StudentProj.Controllers
 
             return Ok("Role deleted successfully!");
         }
+
+        [HttpPut("UpdateRole/{id}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult> UpdateRole(int id, [FromBody] RoleDTO dto) 
+        {
+            if (id <= 0)
+            {
+                return BadRequest("Invalid role id!");
+            }
+
+            var validation = await _validator.ValidateAsync(dto);
+            if (!validation.IsValid) 
+            {
+                return BadRequest(validation.Errors.Select(e => new
+                {
+                    Field = e.PropertyName,
+                    Message = e.ErrorMessage
+                }));
+            }
+            var existingRole = await _role.GetRoleByIdAsync(id);
+            if (existingRole == null) 
+            {
+                return NotFound($"Role with id {id} not found!");
+            }
+            string formattedName = char.ToUpper(dto.RoleName[0]) + dto.RoleName.Substring(1).ToLower();
+
+            var exists = await _role.RoleExistsAsync(formattedName);
+            if (exists && !existingRole.RoleName.Equals(formattedName, StringComparison.OrdinalIgnoreCase))
+            {
+                return BadRequest($"Role '{formattedName}' already exists!");
+            }
+
+            existingRole.RoleName = formattedName;
+            await _role.UpdateRoleAsync(id, existingRole);
+            return NoContent();
+        }
+
     }
 }
