@@ -15,6 +15,10 @@ namespace StudentProj.Models
         [Required]
         public int RoleId { get; set; }
 
+        public bool IsDeleted { get; set; } = false;
+
+        public DateTime? DeletedAt { get; set; }
+
         [ForeignKey("StudentId")]
         [JsonIgnore]
         public Student Student { get; set; }

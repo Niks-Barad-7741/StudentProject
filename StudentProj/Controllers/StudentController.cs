@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
+using StudentProj.Attributes;
 using StudentProj.DTO;
 using StudentProj.Models;
 using StudentProj.Repository;
@@ -10,17 +11,19 @@ namespace StudentProj.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    //[Authorize(Roles = "Admin")]
     public class StudentController : ControllerBase
     {
         private readonly IStudent _student;
-        public StudentController(IStudent student) 
+        private readonly IRegisterRepository _registerepository;
+        public StudentController(IStudent student, IRegisterRepository registerRepository) 
         {
             _student = student;
+            _registerepository = registerRepository;
         }
 
         [HttpGet("Getall")]
-        [Authorize(Roles = "Admin,User")]
+        //[Authorize(Roles = "Super Admin,Admin,User")]
+        [HasPermission("read:student")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         //[AllowAnonymous]
         public async Task<ActionResult<IEnumerable<StudentDTO>>> GetAll() 
@@ -29,7 +32,8 @@ namespace StudentProj.Controllers
             return Ok(students);
         }
 
-        [Authorize(Roles = "Admin")]
+        //[Authorize(Roles = "Super Admin,Admin,User")]
+        [HasPermission("read:student")]
         [HttpGet("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -40,15 +44,23 @@ namespace StudentProj.Controllers
             {
                 return NotFound($"Student with id {id} not found.");
             }
-            return Ok(student);
+            var studentDTO = new StudentDTO
+            {
+                Name = student.Name,
+                Email = student.Email,
+                Address = student.Address,
+                Phone = student.Phone
+            };
+            return Ok(studentDTO);
 
         }
 
-        [Authorize(Roles = "Admin")]
+        //[Authorize(Roles = "Super Admin,Admin")]
+        [HasPermission("write:student")]
         [HttpPost("Createstudent")]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult> CreateStudent(StudentDTO dto) 
+        public async Task<ActionResult> CreateStudent(RegisterDTO dto) 
         {
             if (dto == null) 
             {
@@ -59,17 +71,31 @@ namespace StudentProj.Controllers
                 Name = dto.Name,
                 Email = dto.Email,
                 Address = dto.Address,
-                Phone = dto.Phone
+                Phone = dto.Phone,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password)
             };
              await _student.Createstudentasync(student);
             if (student == null) 
             {
                 return BadRequest("Could not create student");
             }
-            return CreatedAtAction(nameof(GetbyId), new { id = student.Id }, student);
+            var studentrole = await _registerepository.GetRoleByIdAsync(3);
+            if ( studentrole != null)
+            {  
+                await _registerepository.AssignRoleAsync(student.Id, studentrole.Id);
+            }
+            var studentDTO = new StudentDTO
+            {
+                Name = student.Name,
+                Email = student.Email,
+                Address = student.Address,
+                Phone = student.Phone
+            };
+            return CreatedAtAction(nameof(GetbyId), new { id = student.Id }, studentDTO);
         }
 
-        [Authorize(Roles = "Admin")]
+        //[Authorize(Roles = "Super Admin,Admin,User")]
+        [HasPermission("read:student")]
         [HttpGet("GetbyName/{name}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -80,11 +106,19 @@ namespace StudentProj.Controllers
             {
                 return NotFound($"Student with name {name} not found.");
             }
-            return Ok(student);
+            var studentDTO = new StudentDTO
+            {
+                Name = student.Name,
+                Email = student.Email,
+                Address = student.Address,
+                Phone = student.Phone
+            };
+            return Ok(studentDTO);
         }
 
 
-        [Authorize(Roles = "Admin")]
+        //[Authorize(Roles = "Super Admin,Admin")]
+        [HasPermission("update:student")]
         [HttpPut("UpdateStudent/{id}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -108,7 +142,8 @@ namespace StudentProj.Controllers
             return NoContent();
         }
 
-        [Authorize(Roles = "Admin")]
+        //[Authorize(Roles = "Super Admin,Admin")]
+        [HasPermission("write:student")]
         [HttpPatch("UpdateStudentPartial/{id}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]  
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -148,7 +183,8 @@ namespace StudentProj.Controllers
         }
 
 
-        [Authorize(Roles = "Admin")]
+        //[Authorize(Roles = "Super Admin,Admin")]
+        [HasPermission("delete:student")]
         [HttpDelete("DeletebyId/{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]

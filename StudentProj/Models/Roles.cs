@@ -15,6 +15,10 @@ namespace StudentProj.Models
         [StringLength(12)]
         public string RoleName { get; set; }
 
+        public bool IsDeleted { get; set; } = false;
+
+        public DateTime? DeletedAt { get; set; }
+
         [JsonIgnore]
         public ICollection<StudentRoles> StudentRoles { get; set; }
 

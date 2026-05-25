@@ -30,6 +30,10 @@ namespace StudentProj.Models
         [Required]
         public string PasswordHash { get; set; }
 
+        public bool IsDeleted { get; set; } = false;
+
+        public DateTime? DeletedAt { get; set; }
+
         public ICollection<StudentRoles> StudentRoles { get; set; }
     }
 }

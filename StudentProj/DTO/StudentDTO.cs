@@ -24,5 +24,6 @@ namespace StudentProj.DTO
         [Phone]
         public string Phone { get; set; }
 
+
     }
 }

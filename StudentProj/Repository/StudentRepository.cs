@@ -21,7 +21,12 @@ namespace StudentProj.Repository
 
         public async Task<bool> DeleteStudentasync(Student student)
         {
-            _context.Student.Remove(student);
+            //_context.Student.Remove(student);
+            //await _context.SaveChangesAsync();
+            //return true;
+            student.IsDeleted = true;
+            student.DeletedAt = DateTime.UtcNow;
+            _context.Student.Update(student);
             await _context.SaveChangesAsync();
             return true;
         }
@@ -34,6 +39,7 @@ namespace StudentProj.Repository
             //.ThenInclude(x => x.Role)
             //.ToListAsync();
             return await _context.Student
+        .Where(x => !x.IsDeleted)
         .Select(x => new StudentDTO
         {
             Name = x.Name,
@@ -50,7 +56,7 @@ namespace StudentProj.Repository
             //    .Where(s => s.Email.ToLower().Equals(email.ToLower()))
             //    .FirstOrDefaultAsync();
             return await _context.Student
-       .Where(x => x.Email.ToLower() == email.ToLower())
+       .Where(x => x.Email.ToLower() == email.ToLower() && !x.IsDeleted)
        .Select(x => new StudentDTO
        {
            Name = x.Name,
@@ -63,7 +69,7 @@ namespace StudentProj.Repository
 
         public async Task<Student> GetStudentbyid(int id)
         {
-            return await _context.Student.Where(student => student.Id == id).FirstOrDefaultAsync();
+            return await _context.Student.Where(student => student.Id == id && !student.IsDeleted).FirstOrDefaultAsync();
         //    return await _context.Student
         //.Where(x => x.Id == id)
         //.Select(x => new StudentDTO
@@ -78,7 +84,7 @@ namespace StudentProj.Repository
 
         public async Task<Student> Getstudentbynameasync(string name)
         {
-            return await _context.Student.Where(student => student.Name.ToLower().Contains(name.ToLower())).FirstOrDefaultAsync();
+            return await _context.Student.Where(student => student.Name.ToLower().Contains(name.ToLower()) && !student.IsDeleted).FirstOrDefaultAsync();
         //    return await _context.Student
         //.Where(x => x.Name.ToLower().Contains(name.ToLower()))
         //.Select(x => new StudentDTO
