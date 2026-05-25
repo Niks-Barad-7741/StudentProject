@@ -13,6 +13,10 @@ namespace StudentProj.Models
         [StringLength(20)]
         public string PermissionName { get; set; }
 
+        public bool IsDeleted { get; set; } = false;
+
+        public DateTime? DeletedAt { get; set; }
+
         public ICollection<RolePermissions> RolePermissions { get; set; }
     }
 }
