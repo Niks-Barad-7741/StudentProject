@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using StudentProj.Data;
 
@@ -11,9 +12,11 @@ using StudentProj.Data;
 namespace StudentProj.Migrations
 {
     [DbContext(typeof(StudentDbcontext))]
-    partial class StudentDbcontextModelSnapshot : ModelSnapshot
+    [Migration("20260525070948_Added-Soft_delete")]
+    partial class AddedSoft_delete
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
