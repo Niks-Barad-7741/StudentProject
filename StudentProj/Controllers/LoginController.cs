@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using StudentProj.DTO;
@@ -17,11 +17,18 @@ namespace StudentProj.Controllers
         private readonly ILoginRepository _login;
         private readonly IConfiguration _config;
         private readonly JwtService _JWT_service;
-        public LoginController(ILoginRepository login,IConfiguration config,JwtService jwtService) 
+        private readonly IPermissionRepository _permission;
+
+        public LoginController(
+            ILoginRepository login,
+            IConfiguration config,
+            JwtService jwtService,
+            IPermissionRepository permission) 
         {
             _login = login;
             _config = config;
             _JWT_service = jwtService;
+            _permission = permission;
         }
         [HttpPost("Login")]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -84,7 +91,8 @@ namespace StudentProj.Controllers
                     "Invalid email or password.");
 
             var roles = await _login.GetStudentRolesAsync(student.Id);
-            var token = _JWT_service.GenerateToken(student, roles);
+            var permissions = await _permission.GetPermissionsByRoleNamesAsync(roles);
+            var token = _JWT_service.GenerateToken(student, roles, permissions);
             //// ✅ get roles from database
             //var roles = await _login
             //    .GetStudentRolesAsync(student.Id);
@@ -101,41 +109,5 @@ namespace StudentProj.Controllers
                 Message = "Login successful!"
             });
         }
-
-        //private string GenerateToken(
-        //    Models.Student student,
-        //    List<string> roles)
-        //{
-        //    var key = new SymmetricSecurityKey(
-        //        Encoding.UTF8.GetBytes(
-        //            _config["JWT-Token"]));
-
-        //    var credentials = new SigningCredentials(
-        //        key, SecurityAlgorithms.HmacSha256);
-
-        //    // base claims
-        //    var claims = new List<Claim>
-        //    {
-        //        new Claim("Id",    student.Id.ToString()),
-        //        new Claim("Email", student.Email),
-        //        new Claim("Name",  student.Name)
-        //    };
-
-        //    // ✅ add roles as claims
-        //    foreach (var role in roles)
-        //    {
-        //        claims.Add(new Claim(
-        //            ClaimTypes.Role, role));
-        //    }
-
-        //    var token = new JwtSecurityToken(
-        //        claims: claims,
-        //        expires: DateTime.Now.AddHours(1),
-        //        signingCredentials: credentials
-        //    );
-
-        //    return new JwtSecurityTokenHandler()
-        //        .WriteToken(token);
-        //}
     }
 }

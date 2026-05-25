@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using StudentProj.Data;
 using StudentProj.Models;
 using System.Data;
@@ -18,7 +18,7 @@ namespace StudentProj.Repository
             //    .Where(s => s.Email.ToLower().Equals(email.ToLower()))
             //    .FirstOrDefaultAsync();
             return await _dbcontext.Student
-                .Where(s => s.Phone.Equals(phone))
+                .Where(s => s.Phone.Equals(phone) && !s.IsDeleted)
                 .FirstOrDefaultAsync();
         }
         public async Task<bool> RegisterAsync(Student student)
@@ -33,7 +33,7 @@ namespace StudentProj.Repository
         {
             return await _dbcontext.Roles
                 .Where(r => r.RoleName.ToLower()
-                    .Equals(roleName.ToLower()))
+                    .Equals(roleName.ToLower()) && !r.IsDeleted)
                 .FirstOrDefaultAsync();
         }
         public async Task AssignRoleAsync(
@@ -51,9 +51,10 @@ namespace StudentProj.Repository
            int studentId)
         {
             return await _dbcontext.StudentRoles
-                .Where(sr => sr.StudentId == studentId)
+                .Where(sr => sr.StudentId == studentId && !sr.IsDeleted && !sr.Role.IsDeleted)
                 .Select(sr => sr.Role.RoleName)
                 .ToListAsync();
+
         }
         public async Task UpdateStudentRoleAsync(
            int studentId, string roleName)
@@ -64,9 +65,14 @@ namespace StudentProj.Repository
 
             // remove existing roles
             var existing = await _dbcontext.StudentRoles
-                .Where(sr => sr.StudentId == studentId)
+                .Where(sr => sr.StudentId == studentId && !sr.IsDeleted)
                 .ToListAsync();
-            _dbcontext.StudentRoles.RemoveRange(existing);
+            foreach (var sr in existing)
+            {
+                sr.IsDeleted = true;
+                sr.DeletedAt = DateTime.UtcNow;
+            }
+            _dbcontext.StudentRoles.UpdateRange(existing);
 
             // assign new role
             await _dbcontext.StudentRoles.AddAsync(
@@ -80,13 +86,14 @@ namespace StudentProj.Repository
         public async Task<Student> GetStudentByIdAsync(int studentId)
         {
             return await _dbcontext.Student
-                .FirstOrDefaultAsync(x => x.Id == studentId);
+                .Where(s => s.Id == studentId && !s.IsDeleted)
+                .FirstOrDefaultAsync();
         }
 
         public async Task<Roles> GetRoleByIdAsync(int roleId)
         {
             return await _dbcontext.Roles
-                .FirstOrDefaultAsync(r => r.Id == roleId);
+                .FirstOrDefaultAsync(r => r.Id == roleId && !r.IsDeleted);
         }
 
         public async Task UpdateStudentRoleAsync(int studentId, int roleId)
@@ -97,7 +104,7 @@ namespace StudentProj.Repository
                 return;
 
             var studentRole = await _dbcontext.StudentRoles
-                .FirstOrDefaultAsync(sr => sr.StudentId == studentId);
+                .FirstOrDefaultAsync(sr => sr.StudentId == studentId && !sr.IsDeleted);
 
             if (studentRole != null)
             {

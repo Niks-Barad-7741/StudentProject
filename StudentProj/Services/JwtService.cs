@@ -14,7 +14,7 @@ namespace StudentProj.Services
         {
             _config = config;
         }
-        public string GenerateToken(Student student,List<string>Roles) 
+        public string GenerateToken(Student student,List<string>Roles,List<string> Permissions) 
         {
             var key = new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(_config["JWT-Token"])
@@ -33,7 +33,10 @@ namespace StudentProj.Services
             {
                 claims.Add(new Claim(ClaimTypes.Role, role));
             }
-
+            foreach (var permission in Permissions) 
+            {
+                claims.Add(new Claim("Permission", permission));
+            }
             var token = new JwtSecurityToken(
                 claims: claims,
                 expires: DateTime.Now.AddHours(1),

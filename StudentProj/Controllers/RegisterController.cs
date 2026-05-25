@@ -1,8 +1,9 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using BCrypt.Net;
+using Microsoft.AspNetCore.Mvc;
+using StudentProj.Attributes;
 using StudentProj.DTO;
 using StudentProj.Models;
 using StudentProj.Repository;
-using BCrypt.Net;
 using StudentProj.Services;
 
 namespace StudentProj.Controllers
@@ -14,34 +15,21 @@ namespace StudentProj.Controllers
     {
         private readonly IRegisterRepository _auth;
         private readonly JwtService _JWT_service;
+        private readonly IPermissionRepository _permission;
 
-        public RegisterController(IRegisterRepository auth,JwtService JWT_service) 
+        public RegisterController(
+            IRegisterRepository auth,
+            JwtService JWT_service,
+            IPermissionRepository permission) 
         {
             _auth = auth;
             _JWT_service = JWT_service;
+            _permission = permission;
         }
 
         [HttpPost("Register")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        //public async Task<ActionResult> Register(RegisterDTO dto)
-        //{
-        //    var existing = await _auth.GetStudentbyemailasync(dto.Email);
-        //    if (existing != null)
-        //        return BadRequest("Email already registered.");
-
-        //    var student = new Student
-        //    {
-        //        Name = dto.Name,
-        //        Email = dto.Email,
-        //        Address = dto.Address,
-        //        Phone = dto.Phone,
-        //        PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password)
-        //    };
-
-        //    await _auth.RegisterAsync(student);
-        //    return Ok(student);
-        //}
         public async Task<ActionResult<RegisterResponseDTO>> Register(
             RegisterDTO dto)
         {
@@ -64,16 +52,15 @@ namespace StudentProj.Controllers
 
             await _auth.RegisterAsync(student);
 
-            // ✅ assign Student role by default
             var studentRole = await _auth
-                .GetRoleByIdAsync(2);
+                .GetRoleByIdAsync(3);
             if (studentRole != null)
                 await _auth.AssignRoleAsync(
                     student.Id, studentRole.Id);
 
             var roles = await _auth.GetStudentRolesAsync(student.Id);
-
-            var token = _JWT_service.GenerateToken(student, roles);
+            var permissions = await _permission.GetPermissionsByRoleNamesAsync(roles);
+            var token = _JWT_service.GenerateToken(student, roles, permissions);
             return Ok(new RegisterResponseDTO
             {
                 Name = student.Name,
@@ -83,21 +70,10 @@ namespace StudentProj.Controllers
             });
         }
 
-        // ✅ Admin only - assign role to existing student
-        //[HttpPost("AssignRole")]
-        //[Microsoft.AspNetCore.Authorization.Authorize(
-        //    Roles = "Admin")]
-        //[ProducesResponseType(StatusCodes.Status200OK)]
-        //[ProducesResponseType(StatusCodes.Status400BadRequest)]
-        //public async Task<ActionResult> AssignRole(
-        //    AssignRoleDTO dto)
-        //{
-        //    await _auth.UpdateStudentRoleAsync(
-        //        dto.StudentId, dto.RoleName);
-        //    return Ok($"Role {dto.RoleName} assigned!");
-        //}
+
         [HttpPost("AssignRole")]
-        [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin")]
+        //[Microsoft.AspNetCore.Authorization.Authorize(Roles = "Super Admin,Admin")]
+        [HasPermission("manage:roles")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
