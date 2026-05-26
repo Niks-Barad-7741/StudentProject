@@ -12,6 +12,7 @@ namespace StudentProj.Repository
         Task<Student> Getstudentbynameasync(string name);
         Task<StudentDTO> GetStudentbyemailasync(string email);
         Task<bool> DeleteStudentasync(Student student);
+        Task<int> UpsertStudentAsync(Student student);
 
     }
 }

@@ -203,5 +203,44 @@ namespace StudentProj.Controllers
             return Ok(true);
         }
 
+        [HasPrivilege("write:student")]
+        [HttpPut("UpsertMethod")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult> UpsertStudent(int id, [FromBody] RegisterDTO dto) 
+        {
+            if (id < 0)
+            {
+                return BadRequest("Invalid student ID.");
+            }
+            if (dto == null) 
+            {
+                return BadRequest("Student data is required.");
+            }
+            var student = new Student
+            {
+                Id = id,
+                Name = dto.Name,
+                Email = dto.Email,
+                Address = dto.Address,
+                Phone = dto.Phone,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password)
+            };
+            var resultid = await _student.UpsertStudentAsync(student);
+            if (resultid == 0)
+            {
+                return NotFound($"Student with ID {id} not found."); ;
+            }
+            if (id <= 0)
+            {
+                var studentrole = await _registerepository.GetRoleByIdAsync(3);
+                if (studentrole != null)
+                {
+                    await _registerepository.AssignRoleAsync(resultid, studentrole.Id);
+                }
+            }
+            return Ok($"Student with ID {resultid} was successfully saved (inserted/updated).");
+        }
+
     }
 }
