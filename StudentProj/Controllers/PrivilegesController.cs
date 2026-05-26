@@ -29,16 +29,24 @@ namespace StudentProj.Controllers
         }
 
         // GET all active Privilege
-        [HttpGet("GetAllPermissions")]
+        [HttpGet("GetAllPrivilege")]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        public async Task<ActionResult<IEnumerable<Privileges>>> GetAllPermissions()
+        public async Task<ActionResult<IEnumerable<Privileges>>> GetAllPrivilege()
         {
-            var permissions = await _privilegeRepo.GetAllPrivilegeAsync();
-            return Ok(permissions);
+            var privileges = await _privilegeRepo.GetAllPrivilegeAsync();
+
+            var response = privileges.Select(p => new PrivilegeDTO
+            {
+               PrivilegeName=  p.PrivilegeName
+
+            });
+
+
+            return Ok(response);
         }
 
-        // 1. Create a Permission
-        [HttpPost("CreatePermission")]
+        // 1. Create a Privilege
+        [HttpPost("CreatePrivilege")]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult> CreatePermission([FromBody] PrivilegeDTO dto)
