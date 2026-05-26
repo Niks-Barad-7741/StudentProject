@@ -54,7 +54,7 @@ namespace StudentProj.Repository
             if (role == null) return false;
 
             role.IsDeleted = true;
-            role.DeletedAt = DateTime.UtcNow;
+            role.DeletedAt = DateTime.Now;
             _dbcontext.Roles.Update(role);
             await _dbcontext.SaveChangesAsync();
             return true;

@@ -70,7 +70,7 @@ namespace StudentProj.Repository
             foreach (var sr in existing)
             {
                 sr.IsDeleted = true;
-                sr.DeletedAt = DateTime.UtcNow;
+                sr.DeletedAt = DateTime.Now;
             }
             _dbcontext.StudentRoles.UpdateRange(existing);
 

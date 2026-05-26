@@ -21,7 +21,7 @@ builder.Services.AddScoped<IValidator<LoginDTO>, LoginValidator>();
 builder.Services.AddScoped<IValidator<RegisterDTO>, RegisterValidator>();
 builder.Services.AddScoped<IValidator<AssignRoleDTO>, AssignRoleValidator>();
 builder.Services.AddScoped<IValidator<RoleDTO>, RoleValidator>();
-builder.Services.AddScoped<IValidator<PermissionDTO>, PermissionValidator>();
+builder.Services.AddScoped<IValidator<PrivilegeDTO>, PrivilegeValidator>();
 
 
 builder.Services.AddControllers().AddNewtonsoftJson();
@@ -89,7 +89,7 @@ builder.Services.AddScoped<IStudent, StudentRepository>();
 builder.Services.AddScoped<IRegisterRepository, RegisterRepository>();
 builder.Services.AddScoped<ILoginRepository, LoginRepository>();
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
-builder.Services.AddScoped<IPermissionRepository, PermissionRepository>();
+builder.Services.AddScoped<IPrivilegeRepository, PrivilegeRepository>();
 builder.Services.AddScoped<JwtService>();
 
 var app = builder.Build();

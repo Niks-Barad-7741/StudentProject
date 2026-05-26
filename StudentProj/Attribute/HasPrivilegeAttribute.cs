@@ -6,11 +6,11 @@ using System.Linq;
 namespace StudentProj.Attributes
 {
     [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class, AllowMultiple = true)]
-    public class HasPermissionAttribute : Attribute, IAuthorizationFilter
+    public class HasPrivilegeAttribute : Attribute, IAuthorizationFilter
     {
         private readonly string _permission;
 
-        public HasPermissionAttribute(string permission)
+        public HasPrivilegeAttribute(string permission)
         {
             _permission = permission;
         }
@@ -29,14 +29,14 @@ namespace StudentProj.Attributes
                 return;
             }
 
-            // 2. Read all "Permission" claims out of the JWT token
-            var userPermissions = user.Claims
-                .Where(c => c.Type.Equals("Permission", StringComparison.OrdinalIgnoreCase))
+            // 2. Read all "Privilege" claims out of the JWT token
+            var userPrivileges = user.Claims
+                .Where(c => c.Type.Equals("Privilege", StringComparison.OrdinalIgnoreCase))
                 .Select(c => c.Value)
                 .ToList();
 
-            // 3. Check if the user has the required permission
-            if (!userPermissions.Contains(_permission, StringComparer.OrdinalIgnoreCase))
+            // 3. Check if the user has the required privilege
+            if (!userPrivileges.Contains(_permission, StringComparer.OrdinalIgnoreCase))
             {
                 context.Result = new ForbidResult(); // Short-circuits request & returns 403 Forbidden
                 return;

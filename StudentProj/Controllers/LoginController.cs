@@ -17,18 +17,18 @@ namespace StudentProj.Controllers
         private readonly ILoginRepository _login;
         private readonly IConfiguration _config;
         private readonly JwtService _JWT_service;
-        private readonly IPermissionRepository _permission;
+        private readonly IPrivilegeRepository _privilege;
 
         public LoginController(
             ILoginRepository login,
             IConfiguration config,
             JwtService jwtService,
-            IPermissionRepository permission) 
+            IPrivilegeRepository privilege) 
         {
             _login = login;
             _config = config;
             _JWT_service = jwtService;
-            _permission = permission;
+            _privilege = privilege;
         }
         [HttpPost("Login")]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -91,8 +91,8 @@ namespace StudentProj.Controllers
                     "Invalid email or password.");
 
             var roles = await _login.GetStudentRolesAsync(student.Id);
-            var permissions = await _permission.GetPermissionsByRoleNamesAsync(roles);
-            var token = _JWT_service.GenerateToken(student, roles, permissions);
+            var privileges = await _privilege.GetPrivilegeByRoleNamesAsync(roles);
+            var token = _JWT_service.GenerateToken(student, roles, privileges);
             //// ✅ get roles from database
             //var roles = await _login
             //    .GetStudentRolesAsync(student.Id);

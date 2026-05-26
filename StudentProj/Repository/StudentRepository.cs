@@ -25,7 +25,7 @@ namespace StudentProj.Repository
             //await _context.SaveChangesAsync();
             //return true;
             student.IsDeleted = true;
-            student.DeletedAt = DateTime.UtcNow;
+            student.DeletedAt = DateTime.Now;
             _context.Student.Update(student);
             await _context.SaveChangesAsync();
             return true;

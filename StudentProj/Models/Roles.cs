@@ -22,6 +22,6 @@ namespace StudentProj.Models
         [JsonIgnore]
         public ICollection<StudentRoles> StudentRoles { get; set; }
 
-        public ICollection<RolePermissions> RolePermissions { get; set; }
+        public ICollection<RolePrivileges> RolePrivileges { get; set; }
     }
 }

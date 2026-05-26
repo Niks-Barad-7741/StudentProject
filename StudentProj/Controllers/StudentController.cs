@@ -23,7 +23,7 @@ namespace StudentProj.Controllers
 
         [HttpGet("Getall")]
         //[Authorize(Roles = "Super Admin,Admin,User")]
-        [HasPermission("read:student")]
+        [HasPrivilege("read:student")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         //[AllowAnonymous]
         public async Task<ActionResult<IEnumerable<StudentDTO>>> GetAll() 
@@ -33,7 +33,7 @@ namespace StudentProj.Controllers
         }
 
         //[Authorize(Roles = "Super Admin,Admin,User")]
-        [HasPermission("read:student")]
+        [HasPrivilege("read:student")]
         [HttpGet("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -56,7 +56,7 @@ namespace StudentProj.Controllers
         }
 
         //[Authorize(Roles = "Super Admin,Admin")]
-        [HasPermission("write:student")]
+        [HasPrivilege("write:student")]
         [HttpPost("Createstudent")]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -95,7 +95,7 @@ namespace StudentProj.Controllers
         }
 
         //[Authorize(Roles = "Super Admin,Admin,User")]
-        [HasPermission("read:student")]
+        [HasPrivilege("read:student")]
         [HttpGet("GetbyName/{name}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -118,7 +118,7 @@ namespace StudentProj.Controllers
 
 
         //[Authorize(Roles = "Super Admin,Admin")]
-        [HasPermission("update:student")]
+        [HasPrivilege("update:student")]
         [HttpPut("UpdateStudent/{id}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -143,7 +143,7 @@ namespace StudentProj.Controllers
         }
 
         //[Authorize(Roles = "Super Admin,Admin")]
-        [HasPermission("write:student")]
+        [HasPrivilege("write:student")]
         [HttpPatch("UpdateStudentPartial/{id}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]  
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -184,7 +184,7 @@ namespace StudentProj.Controllers
 
 
         //[Authorize(Roles = "Super Admin,Admin")]
-        [HasPermission("delete:student")]
+        [HasPrivilege("delete:student")]
         [HttpDelete("DeletebyId/{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]

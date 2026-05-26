@@ -15,16 +15,16 @@ namespace StudentProj.Controllers
     {
         private readonly IRegisterRepository _auth;
         private readonly JwtService _JWT_service;
-        private readonly IPermissionRepository _permission;
+        private readonly IPrivilegeRepository _privilege;
 
         public RegisterController(
             IRegisterRepository auth,
             JwtService JWT_service,
-            IPermissionRepository permission) 
+            IPrivilegeRepository privilege) 
         {
             _auth = auth;
             _JWT_service = JWT_service;
-            _permission = permission;
+            _privilege = privilege;
         }
 
         [HttpPost("Register")]
@@ -59,8 +59,8 @@ namespace StudentProj.Controllers
                     student.Id, studentRole.Id);
 
             var roles = await _auth.GetStudentRolesAsync(student.Id);
-            var permissions = await _permission.GetPermissionsByRoleNamesAsync(roles);
-            var token = _JWT_service.GenerateToken(student, roles, permissions);
+            var privileges = await _privilege.GetPrivilegeByRoleNamesAsync(roles);
+            var token = _JWT_service.GenerateToken(student, roles, privileges);
             return Ok(new RegisterResponseDTO
             {
                 Name = student.Name,
@@ -73,7 +73,7 @@ namespace StudentProj.Controllers
 
         [HttpPost("AssignRole")]
         //[Microsoft.AspNetCore.Authorization.Authorize(Roles = "Super Admin,Admin")]
-        [HasPermission("manage:roles")]
+        [HasPrivilege("manage:roles")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]

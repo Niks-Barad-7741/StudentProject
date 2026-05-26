@@ -14,7 +14,7 @@ namespace StudentProj.Controllers
     [Route("api/[controller]")]
     [ApiController]
     //[Authorize(Roles = "Super Admin,Admin")] 
-    [HasPermission("manage:roles")]
+    [HasPrivilege("manage:roles")]
     public class RoleController : ControllerBase
     {
         private readonly IRoleRepository _role;
