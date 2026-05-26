@@ -1,0 +1,66 @@
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
+using System.Net;
+using System.Text.Json;
+using System.Threading.Tasks;
+
+namespace StudentProj.Middleware
+{
+    public class ExceptionHandlingMiddleware
+    {
+        private readonly RequestDelegate _next;
+        private readonly ILogger<ExceptionHandlingMiddleware> _logger;
+
+        public ExceptionHandlingMiddleware(RequestDelegate next, ILogger<ExceptionHandlingMiddleware> logger)
+        {
+            _next = next;
+            _logger = logger;
+        }
+
+        public async Task InvokeAsync(HttpContext context)
+        {
+            try
+            {
+                // Let the request proceed to controllers/repositories
+                await _next(context);
+            }
+            catch (Exception ex)
+            {
+                // Log the complete error trace in the server console/logs
+                _logger.LogError(ex, "An unhandled exception occurred during the request.");
+
+                // Handle and serialize the exception into a clean JSON response
+                await HandleExceptionAsync(context, ex);
+            }
+        }
+
+        private static Task HandleExceptionAsync(HttpContext context, Exception exception)
+        {
+            context.Response.ContentType = "application/json";
+
+            // 1. Assign correct HTTP status codes depending on the type of error thrown
+            var statusCode = exception switch
+            {
+                ArgumentException => HttpStatusCode.BadRequest,       // 400 Bad Request
+                KeyNotFoundException => HttpStatusCode.NotFound,      // 404 Not Found
+                UnauthorizedAccessException => HttpStatusCode.Unauthorized, // 401 Unauthorized
+                _ => HttpStatusCode.InternalServerError               // 500 Server Error
+            };
+
+            context.Response.StatusCode = (int)statusCode;
+
+            // 2. Format a clean JSON object to send back to the client
+            var errorResponse = new
+            {
+                StatusCode = context.Response.StatusCode,
+                Message = exception.Message,
+                Details = exception.InnerException?.Message
+            };
+
+            var jsonResult = JsonSerializer.Serialize(errorResponse);
+            return context.Response.WriteAsync(jsonResult);
+        }
+    }
+}

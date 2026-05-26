@@ -94,6 +94,8 @@ builder.Services.AddScoped<JwtService>();
 
 var app = builder.Build();
 
+app.UseMiddleware<StudentProj.Middleware.ExceptionHandlingMiddleware>();
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
