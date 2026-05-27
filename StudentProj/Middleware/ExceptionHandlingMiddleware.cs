@@ -1,10 +1,11 @@
-﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Text.Json;
 using System.Threading.Tasks;
+using StudentProj.Enums;
 
 namespace StudentProj.Middleware
 {
@@ -41,23 +42,31 @@ namespace StudentProj.Middleware
             context.Response.ContentType = "application/json";
 
             // 1. Assign correct HTTP status codes depending on the type of error thrown
-            var statusCode = exception switch
+            var status = exception switch
             {
-                ArgumentException => HttpStatusCode.BadRequest,       // 400 Bad Request
-                KeyNotFoundException => HttpStatusCode.NotFound,      // 404 Not Found
-                UnauthorizedAccessException => HttpStatusCode.Unauthorized, // 401 Unauthorized
-                _ => HttpStatusCode.InternalServerError               // 500 Server Error
+                ArgumentException => Enums.ResponseStatus.BadRequest,       // 400 Bad Request
+                KeyNotFoundException => Enums.ResponseStatus.NotFound,      // 404 Not Found
+                UnauthorizedAccessException => Enums.ResponseStatus.Unauthorized, // 401 Unauthorized
+                _ => Enums.ResponseStatus.InternalServerError               // 500 Server Error
             };
 
-            context.Response.StatusCode = (int)statusCode;
+            context.Response.StatusCode = (int)status;
 
             // 2. Format a clean JSON object to send back to the client
+            var errorResponse = new
+            {
+                status = (int)status,
+                message = status.ToFriendlyMessage()
+            };
+
+            /* Original format commented out:
             var errorResponse = new
             {
                 StatusCode = context.Response.StatusCode,
                 Message = exception.Message,
                 Details = exception.InnerException?.Message
             };
+            */
 
             var jsonResult = JsonSerializer.Serialize(errorResponse);
             return context.Response.WriteAsync(jsonResult);

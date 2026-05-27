@@ -61,6 +61,18 @@ namespace StudentProj.Controllers
             var roles = await _auth.GetStudentRolesAsync(student.Id);
             var privileges = await _privilege.GetPrivilegeByRoleNamesAsync(roles);
             var token = _JWT_service.GenerateToken(student, roles, privileges);
+
+            return Ok(new RegisterResponseDTO
+            {
+                Status = (int)Enums.ResponseStatus.Success,
+                Message = "Registration successful!",
+                Name = student.Name,
+                Token = token,
+                Email = student.Email,
+                Role = studentRole.RoleName
+            });
+
+            /* Original RegisterResponseDTO format commented out:
             return Ok(new RegisterResponseDTO
             {
                 Name = student.Name,
@@ -68,6 +80,7 @@ namespace StudentProj.Controllers
                 Email = student.Email,
                 Role = studentRole.RoleName
             });
+            */
         }
 
 
