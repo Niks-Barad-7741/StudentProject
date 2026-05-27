@@ -94,5 +94,25 @@ namespace StudentProj.Controllers
 
             return Ok($"Role {dto.RoleId} assigned successfully.");
         }
+
+        [HttpPost("RevokeRole")]
+        [HasPrivilege("manage:roles")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult> RevokeRole([FromBody] AssignRoleDTO dto) 
+        {
+            var student = await _auth.GetStudentByIdAsync(dto.StudentId);
+            if (student == null)
+            {
+                return NotFound("Student Not Found");
+            }
+
+            var result = await _auth.RevokeRoleAsync(dto.StudentId, dto.RoleId);
+            if (!result)
+            {
+                return NotFound("This role is not currently assigned to the student.");
+            }
+            return Ok($"Role {dto.RoleId} revoked successfully from Student ID {dto.StudentId}.");
+        }
     }
 }

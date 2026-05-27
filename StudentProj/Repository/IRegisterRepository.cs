@@ -15,5 +15,7 @@ namespace StudentProj.Repository
         Task<Student> GetStudentByIdAsync(int studentId);
         Task<Roles> GetRoleByIdAsync(int roleId);
         Task UpdateStudentRoleAsync(int studentId, int roleId);
+        Task<bool> RevokeRoleAsync(int studentId, int roleId);
+
     }
 }

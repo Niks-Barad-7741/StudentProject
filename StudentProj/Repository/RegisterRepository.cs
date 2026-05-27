@@ -104,11 +104,17 @@ namespace StudentProj.Repository
                 return;
 
             var studentRole = await _dbcontext.StudentRoles
-                .FirstOrDefaultAsync(sr => sr.StudentId == studentId && !sr.IsDeleted);
+                .FirstOrDefaultAsync(sr => sr.StudentId == studentId && sr.RoleId == roleId);
 
             if (studentRole != null)
             {
-                studentRole.RoleId = roleId;
+                if (studentRole.IsDeleted)
+                {
+                    studentRole.IsDeleted = false;
+                    studentRole.DeletedAt = null;
+                    _dbcontext.StudentRoles.Update(studentRole);
+                    await _dbcontext.SaveChangesAsync();
+                }
             }
             else
             {
@@ -117,9 +123,22 @@ namespace StudentProj.Repository
                     StudentId = studentId,
                     RoleId = roleId
                 });
+                await _dbcontext.SaveChangesAsync();
             }
+        }
+        public async Task<bool> RevokeRoleAsync(int studentId, int roleId) 
+        {
+            var studentRole = await _dbcontext.StudentRoles.FirstOrDefaultAsync(s => s.StudentId == studentId && s.RoleId == roleId && !s.IsDeleted);
+            if (studentRole == null) 
+            {
+                return false;
+            }
+            studentRole.IsDeleted = true;
+            studentRole.DeletedAt = DateTime.Now;
 
+            _dbcontext.StudentRoles.Update(studentRole);
             await _dbcontext.SaveChangesAsync();
+            return true;
         }
     }
 }

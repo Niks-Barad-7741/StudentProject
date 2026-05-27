@@ -44,7 +44,7 @@ namespace StudentProj.Validator
                 .WithMessage("Password is Required")
                 .MinimumLength(6)
                 .WithMessage("Password must be at least 6 characters long")
-                .MaximumLength(10);
+                .MaximumLength(20);
 
         }
 
