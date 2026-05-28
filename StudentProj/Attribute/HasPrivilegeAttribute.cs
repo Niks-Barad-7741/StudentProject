@@ -1,7 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using System;
 using System.Linq;
+using StudentProj.DTO;
 
 namespace StudentProj.Attributes
 {
@@ -21,7 +22,15 @@ namespace StudentProj.Attributes
             var user = context.HttpContext.User;
             if (user == null || user.Identity == null || !user.Identity.IsAuthenticated)
             {
-                context.Result = new UnauthorizedResult(); // Returns 401 Unauthorized
+                // context.Result = new UnauthorizedResult(); // Returns 401 Unauthorized
+                context.Result = new ObjectResult(new FailResponseDTO 
+                { 
+                    statusCodes = 401, 
+                    message = "Unauthorized. Please log in." 
+                }) 
+                { 
+                    StatusCode = 401 
+                };
                 return;
             }
             if (user.IsInRole("Super Admin"))
@@ -38,7 +47,15 @@ namespace StudentProj.Attributes
             // 3. Check if the user has the required privilege
             if (!userPrivileges.Contains(_permission, StringComparer.OrdinalIgnoreCase))
             {
-                context.Result = new ForbidResult(); // Short-circuits request & returns 403 Forbidden
+                // context.Result = new ForbidResult(); // Short-circuits request & returns 403 Forbidden
+                context.Result = new ObjectResult(new FailResponseDTO 
+                { 
+                    statusCodes = 403, 
+                    message = $"Forbidden. You do not have the required privilege." 
+                }) 
+                { 
+                    StatusCode = 403 
+                };
                 return;
             }
         }

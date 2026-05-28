@@ -32,12 +32,21 @@ namespace StudentProj.Controllers
             // find student
             var student = await _login.GetStudentbyemailasync(dto.Email);
             if (student == null)
-                return Unauthorized("Invalid email or password.");
+                return Unauthorized(new FailResponseDTO 
+                { 
+                    statusCodes = (int)Enums.ResponseStatus.Unauthorized,
+                    message = "Invalid email." 
+                });
 
             // verify password
             bool isValid = BCrypt.Net.BCrypt.Verify(dto.Password, student.PasswordHash);
             if (!isValid)
-                return Unauthorized("Invalid email or password.");
+                return Unauthorized(new FailResponseDTO
+                {
+                    statusCodes = (int)Enums.ResponseStatus.Unauthorized,
+                    message = "Invalid Password."
+                });
+            //throw new Exception("Invalid Password");
 
             var roles = await _login.GetStudentRolesAsync(student.Id);
             var privileges = await _privilege.GetPrivilegeByRoleNamesAsync(roles);
@@ -46,7 +55,7 @@ namespace StudentProj.Controllers
             // New format: Return status, message, and token
             return Ok(new LoginResponseDTO
             {
-                Status = (int)Enums.ResponseStatus.Success,
+                StatusCodes = (int)Enums.ResponseStatus.Success,
                 Message = "Login successful!",
                 Token = token
             });

@@ -1,4 +1,4 @@
-﻿// Controllers/RoleController.cs
+// Controllers/RoleController.cs
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -43,7 +43,13 @@ namespace StudentProj.Controllers
                     RoleName = r.RoleName
                 }).ToList();
 
-            return Ok(response);
+            // return Ok(response);
+            return Ok(new ApiResponse<IEnumerable<RoleResponseDTO>> 
+            { 
+                statusCodes = (int)Enums.ResponseStatus.Success, 
+                message = "Roles retrieved successfully.", 
+                data = response 
+            });
         }
 
         // GET role by id
@@ -54,17 +60,38 @@ namespace StudentProj.Controllers
             GetRoleById(int id)
         {
             if (id <= 0)
-                return BadRequest("Invalid role id!");
+            {
+                // return BadRequest("Invalid role id!");
+                return BadRequest(new FailResponseDTO 
+                { 
+                    statusCodes = (int)Enums.ResponseStatus.BadRequest, 
+                    message = "Invalid role id!" 
+                });
+            }
 
             var role = await _role.GetRoleByIdAsync(id);
             if (role == null)
-                return NotFound(
-                    $"Role with id {id} not found!");
+            {
+                // return NotFound($"Role with id {id} not found!");
+                return NotFound(new FailResponseDTO 
+                { 
+                    statusCodes = (int)Enums.ResponseStatus.NotFound, 
+                    message = $"Role with id {id} not found!" 
+                });
+            }
 
-            return Ok(new RoleResponseDTO
+            var responseDTO = new RoleResponseDTO
             {
                 Id = role.Id,
                 RoleName = role.RoleName
+            };
+
+            // return Ok(responseDTO);
+            return Ok(new ApiResponse<RoleResponseDTO> 
+            { 
+                statusCodes = (int)Enums.ResponseStatus.Success, 
+                message = "Role retrieved successfully.", 
+                data = responseDTO 
             });
         }
 
@@ -90,8 +117,14 @@ namespace StudentProj.Controllers
             var exists = await _role
                 .RoleExistsAsync(dto.RoleName);
             if (exists)
-                return BadRequest(
-                    $"Role '{dto.RoleName}' already exists!");
+            {
+                // return BadRequest($"Role '{dto.RoleName}' already exists!");
+                return BadRequest(new FailResponseDTO 
+                { 
+                    statusCodes = (int)Enums.ResponseStatus.BadRequest, 
+                    message = $"Role '{dto.RoleName}' already exists!" 
+                });
+            }
 
             // create role
             var role = new Roles
@@ -102,14 +135,21 @@ namespace StudentProj.Controllers
             };
 
             var created = await _role.CreateRoleAsync(role);
+            var responseDTO = new RoleResponseDTO
+            {
+                Id = created.Id,
+                RoleName = created.RoleName
+            };
 
+            // return CreatedAtAction(nameof(GetRoleById), new { id = created.Id }, responseDTO);
             return CreatedAtAction(
                 nameof(GetRoleById),
                 new { id = created.Id },
-                new RoleResponseDTO
-                {
-                    Id = created.Id,
-                    RoleName = created.RoleName
+                new ApiResponse<RoleResponseDTO> 
+                { 
+                    statusCodes = (int)Enums.ResponseStatus.Created, 
+                    message = "Role created successfully.", 
+                    data = responseDTO 
                 });
         }
 
@@ -120,14 +160,32 @@ namespace StudentProj.Controllers
         public async Task<ActionResult> DeleteRole(int id)
         {
             if (id <= 0)
-                return BadRequest("Invalid role id!");
+            {
+                // return BadRequest("Invalid role id!");
+                return BadRequest(new FailResponseDTO 
+                { 
+                    statusCodes = (int)Enums.ResponseStatus.BadRequest, 
+                    message = "Invalid role id!" 
+                });
+            }
 
             var result = await _role.DeleteRoleAsync(id);
             if (!result)
-                return NotFound(
-                    $"Role with id {id} not found!");
+            {
+                // return NotFound($"Role with id {id} not found!");
+                return NotFound(new FailResponseDTO 
+                { 
+                    statusCodes = (int)Enums.ResponseStatus.NotFound, 
+                    message = $"Role with id {id} not found!" 
+                });
+            }
 
-            return Ok("Role deleted successfully!");
+            // return Ok("Role deleted successfully!");
+            return Ok(new BaseResponseDTO 
+            { 
+                statusCodes = (int)Enums.ResponseStatus.Success, 
+                message = "Role deleted successfully!" 
+            });
         }
 
         [HttpPut("UpdateRole/{id}")]
@@ -138,7 +196,12 @@ namespace StudentProj.Controllers
         {
             if (id <= 0)
             {
-                return BadRequest("Invalid role id!");
+                // return BadRequest("Invalid role id!");
+                return BadRequest(new FailResponseDTO 
+                { 
+                    statusCodes = (int)Enums.ResponseStatus.BadRequest, 
+                    message = "Invalid role id!" 
+                });
             }
 
             var validation = await _validator.ValidateAsync(dto);
@@ -153,19 +216,34 @@ namespace StudentProj.Controllers
             var existingRole = await _role.GetRoleByIdAsync(id);
             if (existingRole == null) 
             {
-                return NotFound($"Role with id {id} not found!");
+                // return NotFound($"Role with id {id} not found!");
+                return NotFound(new FailResponseDTO 
+                { 
+                    statusCodes = (int)Enums.ResponseStatus.NotFound, 
+                    message = $"Role with id {id} not found!" 
+                });
             }
             string formattedName = char.ToUpper(dto.RoleName[0]) + dto.RoleName.Substring(1).ToLower();
 
             var exists = await _role.RoleExistsAsync(formattedName);
             if (exists && !existingRole.RoleName.Equals(formattedName, StringComparison.OrdinalIgnoreCase))
             {
-                return BadRequest($"Role '{formattedName}' already exists!");
+                // return BadRequest($"Role '{formattedName}' already exists!");
+                return BadRequest(new FailResponseDTO 
+                { 
+                    statusCodes = (int)Enums.ResponseStatus.BadRequest, 
+                    message = $"Role '{formattedName}' already exists!" 
+                });
             }
 
             existingRole.RoleName = formattedName;
             await _role.UpdateRoleAsync(id, existingRole);
-            return NoContent();
+            // return NoContent();
+            return Ok(new BaseResponseDTO 
+            { 
+                statusCodes = (int)Enums.ResponseStatus.Success, 
+                message = "Role updated successfully." 
+            });
         }
 
     }

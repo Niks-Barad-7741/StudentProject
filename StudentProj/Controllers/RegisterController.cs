@@ -37,7 +37,14 @@ namespace StudentProj.Controllers
             var existing = await _auth
                 .GetStudentbyphoneasync(dto.Phone);
             if (existing != null)
-                return BadRequest("Phone number already registered!");
+            {
+                // return BadRequest("Phone number already registered!");
+                return BadRequest(new FailResponseDTO 
+                { 
+                    statusCodes = (int)Enums.ResponseStatus.BadRequest, 
+                    message = "Phone number already registered!" 
+                });
+            }
 
             // create student
             var student = new Student
@@ -95,12 +102,26 @@ namespace StudentProj.Controllers
             // check student exists
             var student = await _auth.GetStudentByIdAsync(dto.StudentId);
             if (student == null)
-                return NotFound("Student not found.");
+            {
+                // return NotFound("Student not found.");
+                return NotFound(new FailResponseDTO 
+                { 
+                    statusCodes = (int)Enums.ResponseStatus.NotFound, 
+                    message = "Student not found." 
+                });
+            }
 
             // check valid role
             var role = await _auth.GetRoleByIdAsync(dto.RoleId);
             if (role == null)
-                return BadRequest("Invalid role. Only Admin or User allowed.");
+            {
+                // return BadRequest("Invalid role. Only Admin or User allowed.");
+                return BadRequest(new FailResponseDTO 
+                { 
+                    statusCodes = (int)Enums.ResponseStatus.BadRequest, 
+                    message = "Invalid role. Only Admin or User allowed." 
+                });
+            }
 
             // update role
             await _auth.UpdateStudentRoleAsync(dto.StudentId, dto.RoleId);
@@ -117,13 +138,23 @@ namespace StudentProj.Controllers
             var student = await _auth.GetStudentByIdAsync(dto.StudentId);
             if (student == null)
             {
-                return NotFound("Student Not Found");
+                // return NotFound("Student Not Found");
+                return NotFound(new FailResponseDTO 
+                { 
+                    statusCodes = (int)Enums.ResponseStatus.NotFound, 
+                    message = "Student Not Found" 
+                });
             }
 
             var result = await _auth.RevokeRoleAsync(dto.StudentId, dto.RoleId);
             if (!result)
             {
-                return NotFound("This role is not currently assigned to the student.");
+                // return NotFound("This role is not currently assigned to the student.");
+                return NotFound(new FailResponseDTO 
+                { 
+                    statusCodes = (int)Enums.ResponseStatus.NotFound, 
+                    message = "This role is not currently assigned to the student." 
+                });
             }
             return Ok($"Role {dto.RoleId} revoked successfully from Student ID {dto.StudentId}.");
         }

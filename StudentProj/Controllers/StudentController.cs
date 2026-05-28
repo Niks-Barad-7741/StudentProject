@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
@@ -29,7 +29,13 @@ namespace StudentProj.Controllers
         public async Task<ActionResult<IEnumerable<StudentDTO>>> GetAll() 
         {
             var students =await _student.GetAllStudentsasync();
-            return Ok(students);
+            // return Ok(students);
+            return Ok(new ApiResponse<IEnumerable<StudentDTO>> 
+            { 
+                statusCodes = (int)Enums.ResponseStatus.Success, 
+                message = "Students retrieved successfully.", 
+                data = students 
+            });
         }
 
         //[Authorize(Roles = "Super Admin,Admin,User")]
@@ -42,7 +48,12 @@ namespace StudentProj.Controllers
             var student = await _student.GetStudentbyid(id);
             if (student == null) 
             {
-                return NotFound($"Student with id {id} not found.");
+                // return NotFound($"Student with id {id} not found.");
+                return NotFound(new FailResponseDTO 
+                { 
+                    statusCodes = (int)Enums.ResponseStatus.NotFound, 
+                    message = $"Student with id {id} not found." 
+                });
             }
             var studentDTO = new StudentDTO
             {
@@ -51,7 +62,13 @@ namespace StudentProj.Controllers
                 Address = student.Address,
                 Phone = student.Phone
             };
-            return Ok(studentDTO);
+            // return Ok(studentDTO);
+            return Ok(new ApiResponse<StudentDTO> 
+            { 
+                statusCodes = (int)Enums.ResponseStatus.Success, 
+                message = "Student retrieved successfully.", 
+                data = studentDTO 
+            });
 
         }
 
@@ -64,7 +81,12 @@ namespace StudentProj.Controllers
         {
             if (dto == null) 
             {
-                return BadRequest("Student data is required.");
+                // return BadRequest("Student data is required.");
+                return BadRequest(new FailResponseDTO 
+                { 
+                    statusCodes = (int)Enums.ResponseStatus.BadRequest, 
+                    message = "Student data is required." 
+                });
             }
             var student = new Student
             {
@@ -77,7 +99,12 @@ namespace StudentProj.Controllers
              await _student.Createstudentasync(student);
             if (student == null) 
             {
-                return BadRequest("Could not create student");
+                // return BadRequest("Could not create student");
+                return BadRequest(new FailResponseDTO 
+                { 
+                    statusCodes = (int)Enums.ResponseStatus.BadRequest, 
+                    message = "Could not create student" 
+                });
             }
             var studentrole = await _registerepository.GetRoleByIdAsync(3);
             if ( studentrole != null)
@@ -91,7 +118,13 @@ namespace StudentProj.Controllers
                 Address = student.Address,
                 Phone = student.Phone
             };
-            return CreatedAtAction(nameof(GetbyId), new { id = student.Id }, studentDTO);
+            // return CreatedAtAction(nameof(GetbyId), new { id = student.Id }, studentDTO);
+            return CreatedAtAction(nameof(GetbyId), new { id = student.Id }, new ApiResponse<StudentDTO> 
+            { 
+                statusCodes = (int)Enums.ResponseStatus.Created, 
+                message = "Student created successfully.", 
+                data = studentDTO 
+            });
         }
 
         //[Authorize(Roles = "Super Admin,Admin,User")]
@@ -104,7 +137,12 @@ namespace StudentProj.Controllers
             var student = await _student.Getstudentbynameasync(name);
             if (student == null) 
             {
-                return NotFound($"Student with name {name} not found.");
+                // return NotFound($"Student with name {name} not found.");
+                return NotFound(new FailResponseDTO 
+                { 
+                    statusCodes = (int)Enums.ResponseStatus.NotFound, 
+                    message = $"Student with name {name} not found." 
+                });
             }
             var studentDTO = new StudentDTO
             {
@@ -113,7 +151,13 @@ namespace StudentProj.Controllers
                 Address = student.Address,
                 Phone = student.Phone
             };
-            return Ok(studentDTO);
+            // return Ok(studentDTO);
+            return Ok(new ApiResponse<StudentDTO> 
+            { 
+                statusCodes = (int)Enums.ResponseStatus.Success, 
+                message = "Student retrieved successfully.", 
+                data = studentDTO 
+            });
         }
 
 
@@ -127,19 +171,34 @@ namespace StudentProj.Controllers
         {
             if (id <= 0) 
             {
-                return BadRequest("Invalid student ID.");
+                // return BadRequest("Invalid student ID.");
+                return BadRequest(new FailResponseDTO 
+                { 
+                    statusCodes = (int)Enums.ResponseStatus.BadRequest, 
+                    message = "Invalid student ID." 
+                });
             }
             var existingstudent = await _student.GetStudentbyid(id);
             if (existingstudent == null) 
             {
-                return NotFound($"Student with id {id} not found.");
+                // return NotFound($"Student with id {id} not found.");
+                return NotFound(new FailResponseDTO 
+                { 
+                    statusCodes = (int)Enums.ResponseStatus.NotFound, 
+                    message = $"Student with id {id} not found." 
+                });
             }
             existingstudent.Name = dto.Name;
             existingstudent.Email = dto.Email;
             existingstudent.Address = dto.Address;
             existingstudent.Phone = dto.Phone;
             await _student.UpdateStudentasync(id,existingstudent);
-            return NoContent();
+            // return NoContent();
+            return Ok(new BaseResponseDTO 
+            { 
+                statusCodes = (int)Enums.ResponseStatus.Success, 
+                message = "Student updated successfully." 
+            });
         }
 
         //[Authorize(Roles = "Super Admin,Admin")]
@@ -152,12 +211,22 @@ namespace StudentProj.Controllers
         {
             if (id <= 0) 
             {
-                return BadRequest("Invalid Student Id");
+                // return BadRequest("Invalid Student Id");
+                return BadRequest(new FailResponseDTO 
+                { 
+                    statusCodes = (int)Enums.ResponseStatus.BadRequest, 
+                    message = "Invalid Student Id" 
+                });
             }
             var existingstudent = await _student.GetStudentbyid(id);
             if (existingstudent == null) 
             {
-                return NotFound($"Student with id {id} not found.");
+                // return NotFound($"Student with id {id} not found.");
+                return NotFound(new FailResponseDTO 
+                { 
+                    statusCodes = (int)Enums.ResponseStatus.NotFound, 
+                    message = $"Student with id {id} not found." 
+                });
             }
             var studentdto = new StudentDTO
             {
@@ -176,7 +245,12 @@ namespace StudentProj.Controllers
             existingstudent.Address = studentdto.Address;
             existingstudent.Phone = studentdto.Phone;
             await _student.UpdateStudentasync(id, existingstudent);
-            return NoContent();
+            // return NoContent();
+            return Ok(new BaseResponseDTO 
+            { 
+                statusCodes = (int)Enums.ResponseStatus.Success, 
+                message = "Student updated successfully." 
+            });
 
 
 
@@ -192,15 +266,31 @@ namespace StudentProj.Controllers
         {
             if (id <= 0) 
             {
-                return BadRequest();
+                // return BadRequest();
+                return BadRequest(new FailResponseDTO 
+                { 
+                    statusCodes = (int)Enums.ResponseStatus.BadRequest, 
+                    message = "Invalid student ID." 
+                });
             }
             var student = await _student.GetStudentbyid(id);
             if (student == null) 
             {
-                return NotFound($"Student with id {id} not found.");
+                // return NotFound($"Student with id {id} not found.");
+                return NotFound(new FailResponseDTO 
+                { 
+                    statusCodes = (int)Enums.ResponseStatus.NotFound, 
+                    message = $"Student with id {id} not found." 
+                });
             }
             await _student.DeleteStudentasync(student);
-            return Ok(true);
+            // return Ok(true);
+            return Ok(new ApiResponse<bool> 
+            { 
+                statusCodes = (int)Enums.ResponseStatus.Success, 
+                message = "Student deleted successfully.", 
+                data = true 
+            });
         }
 
         [HasPrivilege("write:student")]
@@ -211,11 +301,21 @@ namespace StudentProj.Controllers
         {
             if (id < 0)
             {
-                return BadRequest("Invalid student ID.");
+                // return BadRequest("Invalid student ID.");
+                return BadRequest(new FailResponseDTO 
+                { 
+                    statusCodes = (int)Enums.ResponseStatus.BadRequest, 
+                    message = "Invalid student ID." 
+                });
             }
             if (dto == null) 
             {
-                return BadRequest("Student data is required.");
+                // return BadRequest("Student data is required.");
+                return BadRequest(new FailResponseDTO 
+                { 
+                    statusCodes = (int)Enums.ResponseStatus.BadRequest, 
+                    message = "Student data is required." 
+                });
             }
             var student = new Student
             {
@@ -229,7 +329,12 @@ namespace StudentProj.Controllers
             var resultid = await _student.UpsertStudentAsync(student);
             if (resultid == 0)
             {
-                return NotFound($"Student with ID {id} not found."); ;
+                // return NotFound($"Student with ID {id} not found."); ;
+                return NotFound(new FailResponseDTO 
+                { 
+                    statusCodes = (int)Enums.ResponseStatus.NotFound, 
+                    message = $"Student with ID {id} not found." 
+                });
             }
             if (id <= 0)
             {
@@ -239,7 +344,13 @@ namespace StudentProj.Controllers
                     await _registerepository.AssignRoleAsync(resultid, studentrole.Id);
                 }
             }
-            return Ok($"Student with ID {resultid} was successfully saved (inserted/updated).");
+            // return Ok($"Student with ID {resultid} was successfully saved (inserted/updated).");
+            return Ok(new ApiResponse<string> 
+            { 
+                statusCodes = (int)Enums.ResponseStatus.Success, 
+                message = $"Student with ID {resultid} was successfully saved (inserted/updated).", 
+                data = resultid.ToString() 
+            });
         }
 
     }

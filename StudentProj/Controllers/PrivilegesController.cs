@@ -1,4 +1,4 @@
-﻿using FluentValidation;
+using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using StudentProj.Attributes;
@@ -41,8 +41,13 @@ namespace StudentProj.Controllers
 
             });
 
-
-            return Ok(response);
+            // return Ok(response);
+            return Ok(new ApiResponse<IEnumerable<PrivilegeDTO>> 
+            { 
+                statusCodes = (int)Enums.ResponseStatus.Success, 
+                message = "Privileges retrieved successfully.", 
+                data = response 
+            });
         }
 
         // 1. Create a Privilege
@@ -59,7 +64,14 @@ namespace StudentProj.Controllers
             // Check if permission already exists
             var exists = await _privilegeRepo.PrivilegeExistsAsync(dto.PrivilegeName);
             if (exists)
-                return BadRequest($"Permission '{dto.PrivilegeName}' already exists!");
+            {
+                // return BadRequest($"Permission '{dto.PrivilegeName}' already exists!");
+                return BadRequest(new FailResponseDTO 
+                { 
+                    statusCodes = (int)Enums.ResponseStatus.BadRequest, 
+                    message = $"Permission '{dto.PrivilegeName}' already exists!" 
+                });
+            }
 
             var permission = new Privileges
             {
@@ -67,7 +79,13 @@ namespace StudentProj.Controllers
             };
 
             var created = await _privilegeRepo.CreatePrivilegeAsync(permission);
-            return Created("", created);
+            // return Created("", created);
+            return Created("", new ApiResponse<Privileges> 
+            { 
+                statusCodes = (int)Enums.ResponseStatus.Created, 
+                message = "Privilege created successfully.", 
+                data = created 
+            });
         }
 
         // 2. Assign Privilege to Role
@@ -80,19 +98,45 @@ namespace StudentProj.Controllers
             // Check if Role exists
             var role = await _roleRepo.GetRoleByIdAsync(dto.RoleId);
             if (role == null)
-                return NotFound($"Role with ID {dto.RoleId} not found!");
+            {
+                // return NotFound($"Role with ID {dto.RoleId} not found!");
+                return NotFound(new FailResponseDTO 
+                { 
+                    statusCodes = (int)Enums.ResponseStatus.NotFound, 
+                    message = $"Role with ID {dto.RoleId} not found!" 
+                });
+            }
 
             // Check if Privilege exists
             var privilege = await _privilegeRepo.GetPrivilegeByIdAsync(dto.PrivilegeId);
             if (privilege == null)
-                return NotFound($"Privilege with ID {dto.PrivilegeId} not found!");
+            {
+                // return NotFound($"Privilege with ID {dto.PrivilegeId} not found!");
+                return NotFound(new FailResponseDTO 
+                { 
+                    statusCodes = (int)Enums.ResponseStatus.NotFound, 
+                    message = $"Privilege with ID {dto.PrivilegeId} not found!" 
+                });
+            }
 
             // Map them together
             var success = await _privilegeRepo.AssignPrivilegeToRoleAsync(dto.RoleId, dto.PrivilegeId);
             if (!success)
-                return BadRequest("This privilege is already assigned to this role!");
+            {
+                // return BadRequest("This privilege is already assigned to this role!");
+                return BadRequest(new FailResponseDTO 
+                { 
+                    statusCodes = (int)Enums.ResponseStatus.BadRequest, 
+                    message = "This privilege is already assigned to this role!" 
+                });
+            }
 
-            return Ok($"Privilege '{privilege.PrivilegeName}' assigned to role '{role.RoleName}' successfully.");
+            // return Ok($"Privilege '{privilege.PrivilegeName}' assigned to role '{role.RoleName}' successfully.");
+            return Ok(new BaseResponseDTO 
+            { 
+                statusCodes = (int)Enums.ResponseStatus.Success, 
+                message = $"Privilege '{privilege.PrivilegeName}' assigned to role '{role.RoleName}' successfully." 
+            });
         }
 
         [HttpPut("UpdatePrivilege/{id}")]
@@ -101,7 +145,15 @@ namespace StudentProj.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult> UpdatePrivilege(int id, [FromBody] PrivilegeDTO dto)
         {
-            if (id <= 0) return BadRequest("Invalid privilege id!");
+            if (id <= 0) 
+            {
+                // return BadRequest("Invalid privilege id!");
+                return BadRequest(new FailResponseDTO 
+                { 
+                    statusCodes = (int)Enums.ResponseStatus.BadRequest, 
+                    message = "Invalid privilege id!" 
+                });
+            }
 
             // Validate the new name
             var validation = await _validator.ValidateAsync(dto);
@@ -109,16 +161,36 @@ namespace StudentProj.Controllers
                 return BadRequest(validation.Errors.Select(e => new { e.PropertyName, e.ErrorMessage }));
 
             var existing = await _privilegeRepo.GetPrivilegeByIdAsync(id);
-            if (existing == null) return NotFound($"Privilege with ID {id} not found.");
+            if (existing == null) 
+            {
+                // return NotFound($"Privilege with ID {id} not found.");
+                return NotFound(new FailResponseDTO 
+                { 
+                    statusCodes = (int)Enums.ResponseStatus.NotFound, 
+                    message = $"Privilege with ID {id} not found." 
+                });
+            }
 
             // Check if new name already exists elsewhere
             var nameExists = await _privilegeRepo.PrivilegeExistsAsync(dto.PrivilegeName);
             if (nameExists && !existing.PrivilegeName.Equals(dto.PrivilegeName, StringComparison.OrdinalIgnoreCase))
-                return BadRequest($"Privilege '{dto.PrivilegeName}' already exists!");
+            {
+                // return BadRequest($"Privilege '{dto.PrivilegeName}' already exists!");
+                return BadRequest(new FailResponseDTO 
+                { 
+                    statusCodes = (int)Enums.ResponseStatus.BadRequest, 
+                    message = $"Privilege '{dto.PrivilegeName}' already exists!" 
+                });
+            }
 
             existing.PrivilegeName = dto.PrivilegeName.ToLower();
             await _privilegeRepo.UpdatePrivilegeRoleAsync(id, existing);
-            return NoContent();
+            // return NoContent();
+            return Ok(new BaseResponseDTO 
+            { 
+                statusCodes = (int)Enums.ResponseStatus.Success, 
+                message = "Privilege updated successfully." 
+            });
         }
 
         [HttpDelete("DeletePermission/{id}")]
@@ -126,12 +198,33 @@ namespace StudentProj.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult> DeletePrivilege(int id)
         {
-            if (id <= 0) return BadRequest("Invalid privilege id!");
+            if (id <= 0) 
+            {
+                // return BadRequest("Invalid privilege id!");
+                return BadRequest(new FailResponseDTO 
+                { 
+                    statusCodes = (int)Enums.ResponseStatus.BadRequest, 
+                    message = "Invalid privilege id!" 
+                });
+            }
 
             var result = await _privilegeRepo.DeletePrivilegeAsync(id);
-            if (!result) return NotFound($"Privilege with ID {id} not found.");
+            if (!result) 
+            {
+                // return NotFound($"Privilege with ID {id} not found.");
+                return NotFound(new FailResponseDTO 
+                { 
+                    statusCodes = (int)Enums.ResponseStatus.NotFound, 
+                    message = $"Privilege with ID {id} not found." 
+                });
+            }
 
-            return Ok("Privilege soft-deleted successfully.");
+            // return Ok("Privilege soft-deleted successfully.");
+            return Ok(new BaseResponseDTO 
+            { 
+                statusCodes = (int)Enums.ResponseStatus.Success, 
+                message = "Privilege soft-deleted successfully." 
+            });
         }
 
         [HttpDelete("RemovePrivilegeFromRole")]
@@ -140,9 +233,22 @@ namespace StudentProj.Controllers
         public async Task<ActionResult> RemovePrivilegeFromRole([FromBody] AssignPrivilegeDTO dto)
         {
             var result = await _privilegeRepo.RemovePrivilegeFromRoleAsync(dto.RoleId, dto.PrivilegeId);
-            if (!result) return NotFound("Mapping not found or already deleted.");
+            if (!result) 
+            {
+                // return NotFound("Mapping not found or already deleted.");
+                return NotFound(new FailResponseDTO 
+                { 
+                    statusCodes = (int)Enums.ResponseStatus.NotFound, 
+                    message = "Mapping not found or already deleted." 
+                });
+            }
 
-            return Ok("Privilege revoked from role successfully.");
+            // return Ok("Privilege revoked from role successfully.");
+            return Ok(new BaseResponseDTO 
+            { 
+                statusCodes = (int)Enums.ResponseStatus.Success, 
+                message = "Privilege revoked from role successfully." 
+            });
         }
     }
 
