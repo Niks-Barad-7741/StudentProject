@@ -13,7 +13,7 @@ namespace StudentProj.Data
         public DbSet<StudentRoles> StudentRoles { get; set; }
         public DbSet<RolePrivileges> RolePrivileges { get; set; }
         public DbSet<Privileges> Privileges { get; set; }
-
+        public DbSet<Logs> Logs { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder) 
         {
