@@ -16,15 +16,18 @@ namespace StudentProj.Controllers
         private readonly IRegisterRepository _auth;
         private readonly JwtService _JWT_service;
         private readonly IPrivilegeRepository _privilege;
+        private readonly ILoggingService _logging;
 
         public RegisterController(
             IRegisterRepository auth,
             JwtService JWT_service,
-            IPrivilegeRepository privilege) 
+            IPrivilegeRepository privilege,
+            ILoggingService logging) 
         {
             _auth = auth;
             _JWT_service = JWT_service;
             _privilege = privilege;
+            _logging = logging;
         }
 
         [HttpPost("Register")]
@@ -38,6 +41,7 @@ namespace StudentProj.Controllers
                 .GetStudentbyphoneasync(dto.Phone);
             if (existing != null)
             {
+                await _logging.LogActivityAsync(dto.Email, "Registration Failed: Phone number already registered", HttpContext);
                 // return BadRequest("Phone number already registered!");
                 return BadRequest(new FailResponseDTO 
                 { 
@@ -69,6 +73,7 @@ namespace StudentProj.Controllers
             var privileges = await _privilege.GetPrivilegeByRoleNamesAsync(roles);
             var token = _JWT_service.GenerateToken(student, roles, privileges);
 
+            await _logging.LogActivityAsync(student.Email, "Registration Succeeded", HttpContext);
             return Ok(new RegisterResponseDTO
             {
                 Status = (int)Enums.ResponseStatus.Success,
@@ -111,22 +116,67 @@ namespace StudentProj.Controllers
                 });
             }
 
-            // check valid role
-            var role = await _auth.GetRoleByIdAsync(dto.RoleId);
-            if (role == null)
+            // check valid roles from comma-separated string
+            if (string.IsNullOrWhiteSpace(dto.RoleIds))
             {
-                // return BadRequest("Invalid role. Only Admin or User allowed.");
-                return BadRequest(new FailResponseDTO 
-                { 
-                    statusCodes = (int)Enums.ResponseStatus.BadRequest, 
-                    message = "Invalid role. Only Admin or User allowed." 
+                return BadRequest(new FailResponseDTO
+                {
+                    statusCodes = (int)Enums.ResponseStatus.BadRequest,
+                    message = "Role IDs must not be empty."
                 });
             }
 
-            // update role
-            await _auth.UpdateStudentRoleAsync(dto.StudentId, dto.RoleId);
+            List<int> roleIdsList;
+            try
+            {
+                roleIdsList = dto.RoleIds.Split(',')
+                    .Select(r => int.Parse(r.Trim()))
+                    .ToList();
+            }
+            catch (FormatException)
+            {
+                return BadRequest(new FailResponseDTO
+                {
+                    statusCodes = (int)Enums.ResponseStatus.BadRequest,
+                    message = "Role IDs must be a comma-separated list of numbers (e.g. '1,2')."
+                });
+            }
 
+            foreach (var roleId in roleIdsList)
+            {
+                var role = await _auth.GetRoleByIdAsync(roleId);
+                if (role == null)
+                {
+                    // return BadRequest("Invalid role. Only Admin or User allowed.");
+                    return BadRequest(new FailResponseDTO 
+                    { 
+                        statusCodes = (int)Enums.ResponseStatus.BadRequest, 
+                        message = $"Invalid role ID: {roleId}. Only Admin, User, or Super Admin allowed." 
+                    });
+                }
+            }
+
+            // update roles
+            /* Original single role assignment commented out:
+            await _auth.UpdateStudentRoleAsync(dto.StudentId, dto.RoleId);
             return Ok($"Role {dto.RoleId} assigned successfully.");
+            */
+            foreach (var roleId in roleIdsList)
+            {
+                await _auth.UpdateStudentRoleAsync(dto.StudentId, roleId);
+            }
+
+            await _logging.LogActivityAsync(
+                HttpContext.User.Identity?.Name ?? "Anonymous", 
+                $"Assigned roles '{dto.RoleIds}' to student ID {dto.StudentId}.", 
+                HttpContext
+            );
+
+            return Ok(new BaseResponseDTO
+            {
+                statusCodes = (int)Enums.ResponseStatus.Success,
+                message = $"Roles {dto.RoleIds} assigned successfully to student ID {dto.StudentId}."
+            });
         }
 
         [HttpPost("RevokeRole")]
@@ -146,17 +196,73 @@ namespace StudentProj.Controllers
                 });
             }
 
-            var result = await _auth.RevokeRoleAsync(dto.StudentId, dto.RoleId);
-            if (!result)
+            if (string.IsNullOrWhiteSpace(dto.RoleIds))
             {
-                // return NotFound("This role is not currently assigned to the student.");
+                return BadRequest(new FailResponseDTO
+                {
+                    statusCodes = (int)Enums.ResponseStatus.BadRequest,
+                    message = "Role IDs must not be empty."
+                });
+            }
+
+            List<int> roleIdsList;
+            try
+            {
+                roleIdsList = dto.RoleIds.Split(',')
+                    .Select(r => int.Parse(r.Trim()))
+                    .ToList();
+            }
+            catch (FormatException)
+            {
+                return BadRequest(new FailResponseDTO
+                {
+                    statusCodes = (int)Enums.ResponseStatus.BadRequest,
+                    message = "Role IDs must be a comma-separated list of numbers (e.g. '1,2')."
+                });
+            }
+
+            var revokedRoles = new List<int>();
+            var failedRoles = new List<int>();
+
+            foreach (var roleId in roleIdsList)
+            {
+                var result = await _auth.RevokeRoleAsync(dto.StudentId, roleId);
+                if (result)
+                {
+                    revokedRoles.Add(roleId);
+                }
+                else
+                {
+                    failedRoles.Add(roleId);
+                }
+            }
+
+            if (revokedRoles.Count == 0)
+            {
                 return NotFound(new FailResponseDTO 
                 { 
                     statusCodes = (int)Enums.ResponseStatus.NotFound, 
-                    message = "This role is not currently assigned to the student." 
+                    message = "None of the specified roles are currently assigned to the student." 
                 });
             }
-            return Ok($"Role {dto.RoleId} revoked successfully from Student ID {dto.StudentId}.");
+
+            await _logging.LogActivityAsync(
+                HttpContext.User.Identity?.Name ?? "Anonymous", 
+                $"Revoked roles '{string.Join(",", revokedRoles)}' from student ID {dto.StudentId}.", 
+                HttpContext
+            );
+
+            string successMessage = $"Roles {string.Join(",", revokedRoles)} revoked successfully from Student ID {dto.StudentId}.";
+            if (failedRoles.Count > 0)
+            {
+                successMessage += $" (Note: Roles {string.Join(",", failedRoles)} were not assigned and could not be revoked).";
+            }
+
+            return Ok(new BaseResponseDTO
+            {
+                statusCodes = (int)Enums.ResponseStatus.Success,
+                message = successMessage
+            });
         }
     }
 }

@@ -1,8 +1,8 @@
-﻿namespace StudentProj.DTO
+namespace StudentProj.DTO
 {
     public class AssignRoleDTO
     {
         public int StudentId { get; set; }
-        public int RoleId { get; set; }
+        public string RoleIds { get; set; }
     }
 }

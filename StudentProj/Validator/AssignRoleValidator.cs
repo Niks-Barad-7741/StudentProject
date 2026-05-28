@@ -1,4 +1,4 @@
-﻿using FluentValidation;
+using FluentValidation;
 using StudentProj.DTO;
 
 namespace StudentProj.Validator
@@ -11,14 +11,11 @@ namespace StudentProj.Validator
                 .GreaterThan(0)
                 .WithMessage("Student Id must be greater than 0");
 
-            //RuleFor(x => x.RoleId)
-            //    .NotEmpty()
-            //    .WithMessage("Role name is required")
-            //    .Must(role => role == "Admin" || role == "User")
-            //    .WithMessage("Role must be Admin or User");
-            RuleFor(x => x.RoleId)
-                .InclusiveBetween(1, 5)
-                .WithMessage("Role must be Admin or User");
+            RuleFor(x => x.RoleIds)
+                .NotEmpty()
+                .WithMessage("Role IDs are required")
+                .Matches(@"^[0-9]+(,[0-9]+)*$")
+                .WithMessage("Role IDs must be a comma-separated list of numbers (e.g. '1,2')");
         }
     }
 }

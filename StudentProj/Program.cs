@@ -11,8 +11,19 @@ using System.Text;
 using Microsoft.OpenApi.Models;
 using StudentProj.Services;
 using StudentProj.Validators;
+using Serilog;
+
+// Configure Serilog with timestamped file name (brand new file every time the app starts)
+var logFileName = System.IO.Path.Combine("logs", $"log-{DateTime.Now:yyyyMMdd_HHmmss}.txt");
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Information()
+    .MinimumLevel.Override("Microsoft", Serilog.Events.LogEventLevel.Warning)
+    .Enrich.FromLogContext()
+    .WriteTo.File(logFileName, outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}")
+    .CreateLogger();
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Host.UseSerilog();
 
 // Add validator services to the container.
 builder.Services.AddFluentValidationAutoValidation();
@@ -91,6 +102,7 @@ builder.Services.AddScoped<ILoginRepository, LoginRepository>();
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 builder.Services.AddScoped<IPrivilegeRepository, PrivilegeRepository>();
 builder.Services.AddScoped<JwtService>();
+builder.Services.AddScoped<ILoggingService, LoggingService>();
 
 var app = builder.Build();
 
@@ -108,6 +120,8 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 
 app.UseAuthorization();
+
+app.UseMiddleware<StudentProj.Middleware.RequestLoggingMiddleware>();
 
 app.MapControllers();
 

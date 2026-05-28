@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using StudentProj.Attributes;
 using StudentProj.DTO;
+using StudentProj.Enums;
 using StudentProj.Models;
 using StudentProj.Repository;
 
@@ -33,9 +34,10 @@ namespace StudentProj.Controllers
             return Ok(new ApiResponse<IEnumerable<StudentDTO>> 
             { 
                 statusCodes = (int)Enums.ResponseStatus.Success, 
-                message = "Students retrieved successfully.", 
+                message = ResponseStatus.Success.ToFriendlyMessage(), 
                 data = students 
             });
+
         }
 
         //[Authorize(Roles = "Super Admin,Admin,User")]

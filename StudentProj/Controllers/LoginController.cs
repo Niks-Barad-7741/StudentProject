@@ -13,15 +13,18 @@ namespace StudentProj.Controllers
         private readonly ILoginRepository _login;
         private readonly JwtService _JWT_service;
         private readonly IPrivilegeRepository _privilege;
+        private readonly ILoggingService _logging;
 
         public LoginController(
             ILoginRepository login,
             JwtService jwtService,
-            IPrivilegeRepository privilege) 
+            IPrivilegeRepository privilege,
+            ILoggingService logging) 
         {
             _login = login;
             _JWT_service = jwtService;
             _privilege = privilege;
+            _logging = logging;
         }
 
         [HttpPost("Login")]
@@ -32,20 +35,26 @@ namespace StudentProj.Controllers
             // find student
             var student = await _login.GetStudentbyemailasync(dto.Email);
             if (student == null)
+            {
+                await _logging.LogActivityAsync(dto.Email, "Login Failed: Invalid Email", HttpContext);
                 return Unauthorized(new FailResponseDTO 
                 { 
                     statusCodes = (int)Enums.ResponseStatus.Unauthorized,
                     message = "Invalid email." 
                 });
+            }
 
             // verify password
             bool isValid = BCrypt.Net.BCrypt.Verify(dto.Password, student.PasswordHash);
             if (!isValid)
+            {
+                await _logging.LogActivityAsync(dto.Email, "Login Failed: Invalid Password", HttpContext);
                 return Unauthorized(new FailResponseDTO
                 {
                     statusCodes = (int)Enums.ResponseStatus.Unauthorized,
                     message = "Invalid Password."
                 });
+            }
             //throw new Exception("Invalid Password");
 
             var roles = await _login.GetStudentRolesAsync(student.Id);
@@ -53,6 +62,7 @@ namespace StudentProj.Controllers
             var token = _JWT_service.GenerateToken(student, roles, privileges);
 
             // New format: Return status, message, and token
+            await _logging.LogActivityAsync(student.Email, "Login Succeeded", HttpContext);
             return Ok(new LoginResponseDTO
             {
                 StatusCodes = (int)Enums.ResponseStatus.Success,
