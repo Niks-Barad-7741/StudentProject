@@ -36,24 +36,18 @@ namespace StudentProj.Controllers
             var student = await _login.GetStudentbyemailasync(dto.Email);
             if (student == null)
             {
-                await _logging.LogActivityAsync(dto.Email, "Login Failed: Invalid Email", HttpContext);
-                return Unauthorized(new FailResponseDTO 
-                { 
-                    statusCodes = (int)Enums.ResponseStatus.Unauthorized,
-                    message = "Invalid email." 
-                });
+                await _logging.LogActivityAsync("Anonymous", dto.Email, "Login Failed: Invalid Email", HttpContext);
+                var errorResponse = ApiResponse<object>.Create(Enums.ResponseStatus.InvalidCredentials, "Invalid email.");
+                return StatusCode(errorResponse.StatusCodes, errorResponse);
             }
 
             // verify password
             bool isValid = BCrypt.Net.BCrypt.Verify(dto.Password, student.PasswordHash);
             if (!isValid)
             {
-                await _logging.LogActivityAsync(dto.Email, "Login Failed: Invalid Password", HttpContext);
-                return Unauthorized(new FailResponseDTO
-                {
-                    statusCodes = (int)Enums.ResponseStatus.Unauthorized,
-                    message = "Invalid Password."
-                });
+                await _logging.LogActivityAsync("Anonymous", dto.Email, "Login Failed: Invalid Password", HttpContext);
+                var errorResponse = ApiResponse<object>.Create(Enums.ResponseStatus.InvalidCredentials, "Invalid Password.");
+                return StatusCode(errorResponse.StatusCodes, errorResponse);
             }
             //throw new Exception("Invalid Password");
 
@@ -61,23 +55,21 @@ namespace StudentProj.Controllers
             var privileges = await _privilege.GetPrivilegeByRoleNamesAsync(roles);
             var token = _JWT_service.GenerateToken(student, roles, privileges);
 
-            // New format: Return status, message, and token
-            await _logging.LogActivityAsync(student.Email, "Login Succeeded", HttpContext);
+            // Return standardized ApiResponse wrapped around LoginResponseDTO (token only)
+            await _logging.LogActivityAsync(student.Name, student.Email, "Login Succeeded", HttpContext);
+            var authData = new LoginResponseDTO
+            {
+                Token = token
+            };
+            var response = ApiResponse<LoginResponseDTO>.Create(Enums.ResponseStatus.UserLoginSuccessfully, authData);
+            return StatusCode(response.StatusCodes, response);
+
+            /* Original LoginResponseDTO format commented out:
             return Ok(new LoginResponseDTO
             {
                 StatusCodes = (int)Enums.ResponseStatus.Success,
                 Message = "Login successful!",
                 Token = token
-            });
-
-            /* Original AuthResponseDTO format commented out:
-            return Ok(new AuthResponseDTO
-            {
-                Name = student.Name,
-                Email = student.Email,
-                Token = token,
-                Role = string.Join(",", roles),
-                Message = "Login successful!"
             });
             */
         }

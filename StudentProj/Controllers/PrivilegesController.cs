@@ -5,12 +5,13 @@ using StudentProj.Attributes;
 using StudentProj.DTO;
 using StudentProj.Models;
 using StudentProj.Repository;
+using StudentProj.Enums;
 
 namespace StudentProj.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    //[Authorize(Roles = "Super Admin")] // Only Super Admin can manage permissions!
+    //[Authorize(Roles ="Super Admin")]
     [HasPrivilege("manage:permissions")]
     public class PrivilegesController : ControllerBase
     {
@@ -31,23 +32,17 @@ namespace StudentProj.Controllers
         // GET all active Privilege
         [HttpGet("GetAllPrivilege")]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        public async Task<ActionResult<IEnumerable<Privileges>>> GetAllPrivilege()
+        public async Task<ActionResult> GetAllPrivilege()
         {
             var privileges = await _privilegeRepo.GetAllPrivilegeAsync();
 
             var response = privileges.Select(p => new PrivilegeDTO
             {
-               PrivilegeName=  p.PrivilegeName
-
+               PrivilegeName = p.PrivilegeName
             });
 
-            // return Ok(response);
-            return Ok(new ApiResponse<IEnumerable<PrivilegeDTO>> 
-            { 
-                statusCodes = (int)Enums.ResponseStatus.Success, 
-                message = "Privileges retrieved successfully.", 
-                data = response 
-            });
+            var success = ApiResponse<IEnumerable<PrivilegeDTO>>.Create(ResponseStatus.UserRetriveSuccessfully, response);
+            return StatusCode(success.StatusCodes, success);
         }
 
         // 1. Create a Privilege
@@ -59,18 +54,18 @@ namespace StudentProj.Controllers
             // Validate input permission string
             var validation = await _validator.ValidateAsync(dto);
             if (!validation.IsValid)
-                return BadRequest(validation.Errors.Select(e => new { e.PropertyName, e.ErrorMessage }));
+            {
+                var errorDetails = validation.Errors.Select(e => new { Field = e.PropertyName, Message = e.ErrorMessage }).ToList();
+                var error = ApiResponse<object>.FailureResponse("Validation failed.", 400, errorDetails);
+                return StatusCode(error.StatusCodes, error);
+            }
 
             // Check if permission already exists
             var exists = await _privilegeRepo.PrivilegeExistsAsync(dto.PrivilegeName);
             if (exists)
             {
-                // return BadRequest($"Permission '{dto.PrivilegeName}' already exists!");
-                return BadRequest(new FailResponseDTO 
-                { 
-                    statusCodes = (int)Enums.ResponseStatus.BadRequest, 
-                    message = $"Permission '{dto.PrivilegeName}' already exists!" 
-                });
+                var error = ApiResponse<object>.Create(ResponseStatus.BadRequest, $"Permission '{dto.PrivilegeName}' already exists!");
+                return StatusCode(error.StatusCodes, error);
             }
 
             var permission = new Privileges
@@ -79,13 +74,8 @@ namespace StudentProj.Controllers
             };
 
             var created = await _privilegeRepo.CreatePrivilegeAsync(permission);
-            // return Created("", created);
-            return Created("", new ApiResponse<Privileges> 
-            { 
-                statusCodes = (int)Enums.ResponseStatus.Created, 
-                message = "Privilege created successfully.", 
-                data = created 
-            });
+            var success = ApiResponse<Privileges>.Create(ResponseStatus.RoleCreatedSuccessfully, created);
+            return Created("", success);
         }
 
         // 2. Assign Privilege to Role
@@ -99,98 +89,71 @@ namespace StudentProj.Controllers
             var role = await _roleRepo.GetRoleByIdAsync(dto.RoleId);
             if (role == null)
             {
-                // return NotFound($"Role with ID {dto.RoleId} not found!");
-                return NotFound(new FailResponseDTO 
-                { 
-                    statusCodes = (int)Enums.ResponseStatus.NotFound, 
-                    message = $"Role with ID {dto.RoleId} not found!" 
-                });
+                var error = ApiResponse<object>.Create(ResponseStatus.RoleNotFound, $"Role with ID {dto.RoleId} not found!");
+                return StatusCode(error.StatusCodes, error);
             }
 
             // Check if Privilege exists
             var privilege = await _privilegeRepo.GetPrivilegeByIdAsync(dto.PrivilegeId);
             if (privilege == null)
             {
-                // return NotFound($"Privilege with ID {dto.PrivilegeId} not found!");
-                return NotFound(new FailResponseDTO 
-                { 
-                    statusCodes = (int)Enums.ResponseStatus.NotFound, 
-                    message = $"Privilege with ID {dto.PrivilegeId} not found!" 
-                });
+                var error = ApiResponse<object>.Create(ResponseStatus.PrivilegeNotFound, $"Privilege with ID {dto.PrivilegeId} not found!");
+                return StatusCode(error.StatusCodes, error);
             }
 
             // Map them together
-            var success = await _privilegeRepo.AssignPrivilegeToRoleAsync(dto.RoleId, dto.PrivilegeId);
-            if (!success)
+            var result = await _privilegeRepo.AssignPrivilegeToRoleAsync(dto.RoleId, dto.PrivilegeId);
+            if (!result)
             {
-                // return BadRequest("This privilege is already assigned to this role!");
-                return BadRequest(new FailResponseDTO 
-                { 
-                    statusCodes = (int)Enums.ResponseStatus.BadRequest, 
-                    message = "This privilege is already assigned to this role!" 
-                });
+                var error = ApiResponse<object>.Create(ResponseStatus.BadRequest, "This privilege is already assigned to this role!");
+                return StatusCode(error.StatusCodes, error);
             }
 
-            // return Ok($"Privilege '{privilege.PrivilegeName}' assigned to role '{role.RoleName}' successfully.");
-            return Ok(new BaseResponseDTO 
-            { 
-                statusCodes = (int)Enums.ResponseStatus.Success, 
-                message = $"Privilege '{privilege.PrivilegeName}' assigned to role '{role.RoleName}' successfully." 
-            });
+            var success = ApiResponse<object>.Create(ResponseStatus.PrivilegeAssignedSuccessfully, $"Privilege '{privilege.PrivilegeName}' assigned to role '{role.RoleName}' successfully.");
+            return StatusCode(success.StatusCodes, success);
         }
 
         [HttpPut("UpdatePrivilege/{id}")]
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult> UpdatePrivilege(int id, [FromBody] PrivilegeDTO dto)
         {
             if (id <= 0) 
             {
-                // return BadRequest("Invalid privilege id!");
-                return BadRequest(new FailResponseDTO 
-                { 
-                    statusCodes = (int)Enums.ResponseStatus.BadRequest, 
-                    message = "Invalid privilege id!" 
-                });
+                var error = ApiResponse<object>.Create(ResponseStatus.BadRequest, "Invalid privilege id!");
+                return StatusCode(error.StatusCodes, error);
             }
 
             // Validate the new name
             var validation = await _validator.ValidateAsync(dto);
             if (!validation.IsValid)
-                return BadRequest(validation.Errors.Select(e => new { e.PropertyName, e.ErrorMessage }));
+            {
+                var errorDetails = validation.Errors.Select(e => new { Field = e.PropertyName, Message = e.ErrorMessage }).ToList();
+                var error = ApiResponse<object>.FailureResponse("Validation failed.", 400, errorDetails);
+                return StatusCode(error.StatusCodes, error);
+            }
 
             var existing = await _privilegeRepo.GetPrivilegeByIdAsync(id);
             if (existing == null) 
             {
-                // return NotFound($"Privilege with ID {id} not found.");
-                return NotFound(new FailResponseDTO 
-                { 
-                    statusCodes = (int)Enums.ResponseStatus.NotFound, 
-                    message = $"Privilege with ID {id} not found." 
-                });
+                var error = ApiResponse<object>.Create(ResponseStatus.PrivilegeNotFound, $"Privilege with ID {id} not found.");
+                return StatusCode(error.StatusCodes, error);
             }
 
             // Check if new name already exists elsewhere
             var nameExists = await _privilegeRepo.PrivilegeExistsAsync(dto.PrivilegeName);
             if (nameExists && !existing.PrivilegeName.Equals(dto.PrivilegeName, StringComparison.OrdinalIgnoreCase))
             {
-                // return BadRequest($"Privilege '{dto.PrivilegeName}' already exists!");
-                return BadRequest(new FailResponseDTO 
-                { 
-                    statusCodes = (int)Enums.ResponseStatus.BadRequest, 
-                    message = $"Privilege '{dto.PrivilegeName}' already exists!" 
-                });
+                var error = ApiResponse<object>.Create(ResponseStatus.BadRequest, $"Privilege '{dto.PrivilegeName}' already exists!");
+                return StatusCode(error.StatusCodes, error);
             }
 
             existing.PrivilegeName = dto.PrivilegeName.ToLower();
             await _privilegeRepo.UpdatePrivilegeRoleAsync(id, existing);
-            // return NoContent();
-            return Ok(new BaseResponseDTO 
-            { 
-                statusCodes = (int)Enums.ResponseStatus.Success, 
-                message = "Privilege updated successfully." 
-            });
+
+            var success = ApiResponse<object>.Create(ResponseStatus.UserUpdatedSuccessfully, "Privilege updated successfully.");
+            return StatusCode(success.StatusCodes, success);
         }
 
         [HttpDelete("DeletePermission/{id}")]
@@ -200,31 +163,19 @@ namespace StudentProj.Controllers
         {
             if (id <= 0) 
             {
-                // return BadRequest("Invalid privilege id!");
-                return BadRequest(new FailResponseDTO 
-                { 
-                    statusCodes = (int)Enums.ResponseStatus.BadRequest, 
-                    message = "Invalid privilege id!" 
-                });
+                var error = ApiResponse<object>.Create(ResponseStatus.BadRequest, "Invalid privilege id!");
+                return StatusCode(error.StatusCodes, error);
             }
 
             var result = await _privilegeRepo.DeletePrivilegeAsync(id);
             if (!result) 
             {
-                // return NotFound($"Privilege with ID {id} not found.");
-                return NotFound(new FailResponseDTO 
-                { 
-                    statusCodes = (int)Enums.ResponseStatus.NotFound, 
-                    message = $"Privilege with ID {id} not found." 
-                });
+                var error = ApiResponse<object>.Create(ResponseStatus.PrivilegeNotFound, $"Privilege with ID {id} not found.");
+                return StatusCode(error.StatusCodes, error);
             }
 
-            // return Ok("Privilege soft-deleted successfully.");
-            return Ok(new BaseResponseDTO 
-            { 
-                statusCodes = (int)Enums.ResponseStatus.Success, 
-                message = "Privilege soft-deleted successfully." 
-            });
+            var success = ApiResponse<object>.Create(ResponseStatus.UserSoftDeleteSuccessfully, "Privilege soft-deleted successfully.");
+            return StatusCode(success.StatusCodes, success);
         }
 
         [HttpDelete("RemovePrivilegeFromRole")]
@@ -235,21 +186,12 @@ namespace StudentProj.Controllers
             var result = await _privilegeRepo.RemovePrivilegeFromRoleAsync(dto.RoleId, dto.PrivilegeId);
             if (!result) 
             {
-                // return NotFound("Mapping not found or already deleted.");
-                return NotFound(new FailResponseDTO 
-                { 
-                    statusCodes = (int)Enums.ResponseStatus.NotFound, 
-                    message = "Mapping not found or already deleted." 
-                });
+                var error = ApiResponse<object>.Create(ResponseStatus.PrivilegeNotFound, "Mapping not found or already deleted.");
+                return StatusCode(error.StatusCodes, error);
             }
 
-            // return Ok("Privilege revoked from role successfully.");
-            return Ok(new BaseResponseDTO 
-            { 
-                statusCodes = (int)Enums.ResponseStatus.Success, 
-                message = "Privilege revoked from role successfully." 
-            });
+            var success = ApiResponse<object>.Create(ResponseStatus.PrivilegeRevokedSuccessfully, "Privilege revoked from role successfully.");
+            return StatusCode(success.StatusCodes, success);
         }
     }
-
 }

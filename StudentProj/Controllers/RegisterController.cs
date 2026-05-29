@@ -5,12 +5,13 @@ using StudentProj.DTO;
 using StudentProj.Models;
 using StudentProj.Repository;
 using StudentProj.Services;
+using StudentProj.Enums;
+using System.Security.Claims;
 
 namespace StudentProj.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-
     public class RegisterController : ControllerBase
     {
         private readonly IRegisterRepository _auth;
@@ -33,21 +34,15 @@ namespace StudentProj.Controllers
         [HttpPost("Register")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<RegisterResponseDTO>> Register(
-            RegisterDTO dto)
+        public async Task<ActionResult> Register(RegisterDTO dto)
         {
             // check Phone Number exists
-            var existing = await _auth
-                .GetStudentbyphoneasync(dto.Phone);
+            var existing = await _auth.GetStudentbyphoneasync(dto.Phone);
             if (existing != null)
             {
-                await _logging.LogActivityAsync(dto.Email, "Registration Failed: Phone number already registered", HttpContext);
-                // return BadRequest("Phone number already registered!");
-                return BadRequest(new FailResponseDTO 
-                { 
-                    statusCodes = (int)Enums.ResponseStatus.BadRequest, 
-                    message = "Phone number already registered!" 
-                });
+                await _logging.LogActivityAsync(dto.Name, dto.Email, "Registration Failed: Phone number already registered", HttpContext);
+                var errorResponse = ApiResponse<object>.Create(ResponseStatus.UserAlreadyExist, "Phone number already registered!");
+                return StatusCode(errorResponse.StatusCodes, errorResponse);
             }
 
             // create student
@@ -57,47 +52,31 @@ namespace StudentProj.Controllers
                 Email = dto.Email,
                 Address = dto.Address,
                 Phone = dto.Phone,
-                PasswordHash = BCrypt.Net.BCrypt
-                    .HashPassword(dto.Password)
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password)
             };
 
             await _auth.RegisterAsync(student);
 
-            var studentRole = await _auth
-                .GetRoleByIdAsync(3);
+            var studentRole = await _auth.GetRoleByIdAsync(3);
             if (studentRole != null)
-                await _auth.AssignRoleAsync(
-                    student.Id, studentRole.Id);
+                await _auth.AssignRoleAsync(student.Id, studentRole.Id);
 
             var roles = await _auth.GetStudentRolesAsync(student.Id);
             var privileges = await _privilege.GetPrivilegeByRoleNamesAsync(roles);
             var token = _JWT_service.GenerateToken(student, roles, privileges);
 
-            await _logging.LogActivityAsync(student.Email, "Registration Succeeded", HttpContext);
-            return Ok(new RegisterResponseDTO
-            {
-                Status = (int)Enums.ResponseStatus.Success,
-                Message = "Registration successful!",
-                Name = student.Name,
-                Token = token,
-                Email = student.Email,
-                Role = studentRole.RoleName
-            });
+            await _logging.LogActivityAsync(student.Name, student.Email, "Registration Succeeded", HttpContext);
 
-            /* Original RegisterResponseDTO format commented out:
-            return Ok(new RegisterResponseDTO
+            // Standardize return payload to match login format (using ApiResponse<LoginResponseDTO>)
+            var authData = new LoginResponseDTO
             {
-                Name = student.Name,
-                Token = token,
-                Email = student.Email,
-                Role = studentRole.RoleName
-            });
-            */
+                Token = token
+            };
+            var response = ApiResponse<LoginResponseDTO>.Create(ResponseStatus.UserRegisterSuccessfully, authData);
+            return StatusCode(response.StatusCodes, response);
         }
 
-
         [HttpPost("AssignRole")]
-        //[Microsoft.AspNetCore.Authorization.Authorize(Roles = "Super Admin,Admin")]
         [HasPrivilege("manage:roles")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -108,22 +87,15 @@ namespace StudentProj.Controllers
             var student = await _auth.GetStudentByIdAsync(dto.StudentId);
             if (student == null)
             {
-                // return NotFound("Student not found.");
-                return NotFound(new FailResponseDTO 
-                { 
-                    statusCodes = (int)Enums.ResponseStatus.NotFound, 
-                    message = "Student not found." 
-                });
+                var error = ApiResponse<object>.Create(ResponseStatus.UserNotFound, "Student not found.");
+                return StatusCode(error.StatusCodes, error);
             }
 
             // check valid roles from comma-separated string
             if (string.IsNullOrWhiteSpace(dto.RoleIds))
             {
-                return BadRequest(new FailResponseDTO
-                {
-                    statusCodes = (int)Enums.ResponseStatus.BadRequest,
-                    message = "Role IDs must not be empty."
-                });
+                var error = ApiResponse<object>.Create(ResponseStatus.BadRequest, "Role IDs must not be empty.");
+                return StatusCode(error.StatusCodes, error);
             }
 
             List<int> roleIdsList;
@@ -135,11 +107,8 @@ namespace StudentProj.Controllers
             }
             catch (FormatException)
             {
-                return BadRequest(new FailResponseDTO
-                {
-                    statusCodes = (int)Enums.ResponseStatus.BadRequest,
-                    message = "Role IDs must be a comma-separated list of numbers (e.g. '1,2')."
-                });
+                var error = ApiResponse<object>.Create(ResponseStatus.BadRequest, "Role IDs must be a comma-separated list of numbers (e.g. '1,2').");
+                return StatusCode(error.StatusCodes, error);
             }
 
             foreach (var roleId in roleIdsList)
@@ -147,36 +116,27 @@ namespace StudentProj.Controllers
                 var role = await _auth.GetRoleByIdAsync(roleId);
                 if (role == null)
                 {
-                    // return BadRequest("Invalid role. Only Admin or User allowed.");
-                    return BadRequest(new FailResponseDTO 
-                    { 
-                        statusCodes = (int)Enums.ResponseStatus.BadRequest, 
-                        message = $"Invalid role ID: {roleId}. Only Admin, User, or Super Admin allowed." 
-                    });
+                    var error = ApiResponse<object>.Create(ResponseStatus.RoleNotFound, $"Invalid role ID: {roleId}. Only Admin, User, or Super Admin allowed.");
+                    return StatusCode(error.StatusCodes, error);
                 }
             }
 
-            // update roles
-            /* Original single role assignment commented out:
-            await _auth.UpdateStudentRoleAsync(dto.StudentId, dto.RoleId);
-            return Ok($"Role {dto.RoleId} assigned successfully.");
-            */
             foreach (var roleId in roleIdsList)
             {
                 await _auth.UpdateStudentRoleAsync(dto.StudentId, roleId);
             }
 
+            var assignerEmail = HttpContext.User.FindFirst("Email")?.Value ?? HttpContext.User.FindFirst(ClaimTypes.Email)?.Value ?? "Anonymous";
+            var assignerName = HttpContext.User.FindFirst("Name")?.Value ?? HttpContext.User.FindFirst(ClaimTypes.Name)?.Value ?? "Anonymous";
             await _logging.LogActivityAsync(
-                HttpContext.User.Identity?.Name ?? "Anonymous", 
+                assignerName,
+                assignerEmail,
                 $"Assigned roles '{dto.RoleIds}' to student ID {dto.StudentId}.", 
                 HttpContext
             );
 
-            return Ok(new BaseResponseDTO
-            {
-                statusCodes = (int)Enums.ResponseStatus.Success,
-                message = $"Roles {dto.RoleIds} assigned successfully to student ID {dto.StudentId}."
-            });
+            var success = ApiResponse<object>.Create(ResponseStatus.RoleAssignedSuccessfully, $"Roles {dto.RoleIds} assigned successfully to student ID {dto.StudentId}.");
+            return StatusCode(success.StatusCodes, success);
         }
 
         [HttpPost("RevokeRole")]
@@ -188,21 +148,14 @@ namespace StudentProj.Controllers
             var student = await _auth.GetStudentByIdAsync(dto.StudentId);
             if (student == null)
             {
-                // return NotFound("Student Not Found");
-                return NotFound(new FailResponseDTO 
-                { 
-                    statusCodes = (int)Enums.ResponseStatus.NotFound, 
-                    message = "Student Not Found" 
-                });
+                var error = ApiResponse<object>.Create(ResponseStatus.UserNotFound, "Student Not Found");
+                return StatusCode(error.StatusCodes, error);
             }
 
             if (string.IsNullOrWhiteSpace(dto.RoleIds))
             {
-                return BadRequest(new FailResponseDTO
-                {
-                    statusCodes = (int)Enums.ResponseStatus.BadRequest,
-                    message = "Role IDs must not be empty."
-                });
+                var error = ApiResponse<object>.Create(ResponseStatus.BadRequest, "Role IDs must not be empty.");
+                return StatusCode(error.StatusCodes, error);
             }
 
             List<int> roleIdsList;
@@ -214,11 +167,8 @@ namespace StudentProj.Controllers
             }
             catch (FormatException)
             {
-                return BadRequest(new FailResponseDTO
-                {
-                    statusCodes = (int)Enums.ResponseStatus.BadRequest,
-                    message = "Role IDs must be a comma-separated list of numbers (e.g. '1,2')."
-                });
+                var error = ApiResponse<object>.Create(ResponseStatus.BadRequest, "Role IDs must be a comma-separated list of numbers (e.g. '1,2').");
+                return StatusCode(error.StatusCodes, error);
             }
 
             var revokedRoles = new List<int>();
@@ -239,15 +189,15 @@ namespace StudentProj.Controllers
 
             if (revokedRoles.Count == 0)
             {
-                return NotFound(new FailResponseDTO 
-                { 
-                    statusCodes = (int)Enums.ResponseStatus.NotFound, 
-                    message = "None of the specified roles are currently assigned to the student." 
-                });
+                var error = ApiResponse<object>.Create(ResponseStatus.RoleNotFound, "None of the specified roles are currently assigned to the student.");
+                return StatusCode(error.StatusCodes, error);
             }
 
+            var revokerEmail = HttpContext.User.FindFirst("Email")?.Value ?? HttpContext.User.FindFirst(ClaimTypes.Email)?.Value ?? "Anonymous";
+            var revokerName = HttpContext.User.FindFirst("Name")?.Value ?? HttpContext.User.FindFirst(ClaimTypes.Name)?.Value ?? "Anonymous";
             await _logging.LogActivityAsync(
-                HttpContext.User.Identity?.Name ?? "Anonymous", 
+                revokerName,
+                revokerEmail,
                 $"Revoked roles '{string.Join(",", revokedRoles)}' from student ID {dto.StudentId}.", 
                 HttpContext
             );
@@ -258,11 +208,8 @@ namespace StudentProj.Controllers
                 successMessage += $" (Note: Roles {string.Join(",", failedRoles)} were not assigned and could not be revoked).";
             }
 
-            return Ok(new BaseResponseDTO
-            {
-                statusCodes = (int)Enums.ResponseStatus.Success,
-                message = successMessage
-            });
+            var success = ApiResponse<object>.Create(ResponseStatus.RoleRevokedSuccessfully, successMessage);
+            return StatusCode(success.StatusCodes, success);
         }
     }
 }

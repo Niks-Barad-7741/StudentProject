@@ -1,4 +1,3 @@
-// Controllers/RoleController.cs
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -6,6 +5,7 @@ using StudentProj.Attributes;
 using StudentProj.DTO;
 using StudentProj.Models;
 using StudentProj.Repository;
+using StudentProj.Enums;
 using System.ComponentModel.DataAnnotations;
 using System.Data;
 
@@ -13,7 +13,6 @@ namespace StudentProj.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    //[Authorize(Roles = "Super Admin,Admin")] 
     [HasPrivilege("manage:roles")]
     public class RoleController : ControllerBase
     {
@@ -31,7 +30,7 @@ namespace StudentProj.Controllers
         // GET all roles
         [HttpGet("GetAllRoles")]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        public async Task<ActionResult<IEnumerable<RoleResponseDTO>>> GetAllRoles()
+        public async Task<ActionResult> GetAllRoles()
         {
             var roles = await _role.GetAllRolesAsync();
 
@@ -43,41 +42,27 @@ namespace StudentProj.Controllers
                     RoleName = r.RoleName
                 }).ToList();
 
-            // return Ok(response);
-            return Ok(new ApiResponse<IEnumerable<RoleResponseDTO>> 
-            { 
-                statusCodes = (int)Enums.ResponseStatus.Success, 
-                message = "Roles retrieved successfully.", 
-                data = response 
-            });
+            var success = ApiResponse<IEnumerable<RoleResponseDTO>>.Create(ResponseStatus.UserRetriveSuccessfully, response);
+            return StatusCode(success.StatusCodes, success);
         }
 
         // GET role by id
         [HttpGet("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<RoleResponseDTO>>
-            GetRoleById(int id)
+        public async Task<ActionResult> GetRoleById(int id)
         {
             if (id <= 0)
             {
-                // return BadRequest("Invalid role id!");
-                return BadRequest(new FailResponseDTO 
-                { 
-                    statusCodes = (int)Enums.ResponseStatus.BadRequest, 
-                    message = "Invalid role id!" 
-                });
+                var error = ApiResponse<object>.Create(ResponseStatus.BadRequest, "Invalid role id!");
+                return StatusCode(error.StatusCodes, error);
             }
 
             var role = await _role.GetRoleByIdAsync(id);
             if (role == null)
             {
-                // return NotFound($"Role with id {id} not found!");
-                return NotFound(new FailResponseDTO 
-                { 
-                    statusCodes = (int)Enums.ResponseStatus.NotFound, 
-                    message = $"Role with id {id} not found!" 
-                });
+                var error = ApiResponse<object>.Create(ResponseStatus.RoleNotFound, $"Role with id {id} not found!");
+                return StatusCode(error.StatusCodes, error);
             }
 
             var responseDTO = new RoleResponseDTO
@@ -86,52 +71,37 @@ namespace StudentProj.Controllers
                 RoleName = role.RoleName
             };
 
-            // return Ok(responseDTO);
-            return Ok(new ApiResponse<RoleResponseDTO> 
-            { 
-                statusCodes = (int)Enums.ResponseStatus.Success, 
-                message = "Role retrieved successfully.", 
-                data = responseDTO 
-            });
+            var success = ApiResponse<RoleResponseDTO>.Create(ResponseStatus.UserRetriveSuccessfully, responseDTO);
+            return StatusCode(success.StatusCodes, success);
         }
 
         // POST create role
         [HttpPost("CreateRole")]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<RoleResponseDTO>>
-            CreateRole([FromBody] RoleDTO dto)
+        public async Task<ActionResult> CreateRole([FromBody] RoleDTO dto)
         {
             // fluent validation
-            var validation = await _validator
-                .ValidateAsync(dto);
+            var validation = await _validator.ValidateAsync(dto);
             if (!validation.IsValid)
-                return BadRequest(validation.Errors
-                    .Select(e => new
-                    {
-                        Field = e.PropertyName,
-                        Message = e.ErrorMessage
-                    }));
+            {
+                var errorDetails = validation.Errors.Select(e => new { Field = e.PropertyName, Message = e.ErrorMessage }).ToList();
+                var error = ApiResponse<object>.FailureResponse("Validation failed.", 400, errorDetails);
+                return StatusCode(error.StatusCodes, error);
+            }
 
-            // ✅ check duplicate - case insensitive
-            var exists = await _role
-                .RoleExistsAsync(dto.RoleName);
+            // check duplicate - case insensitive
+            var exists = await _role.RoleExistsAsync(dto.RoleName);
             if (exists)
             {
-                // return BadRequest($"Role '{dto.RoleName}' already exists!");
-                return BadRequest(new FailResponseDTO 
-                { 
-                    statusCodes = (int)Enums.ResponseStatus.BadRequest, 
-                    message = $"Role '{dto.RoleName}' already exists!" 
-                });
+                var error = ApiResponse<object>.Create(ResponseStatus.BadRequest, $"Role '{dto.RoleName}' already exists!");
+                return StatusCode(error.StatusCodes, error);
             }
 
             // create role
             var role = new Roles
             {
-                // ✅ capitalize first letter
-                RoleName = char.ToUpper(dto.RoleName[0])
-                    + dto.RoleName.Substring(1).ToLower()
+                RoleName = char.ToUpper(dto.RoleName[0]) + dto.RoleName.Substring(1).ToLower()
             };
 
             var created = await _role.CreateRoleAsync(role);
@@ -141,16 +111,8 @@ namespace StudentProj.Controllers
                 RoleName = created.RoleName
             };
 
-            // return CreatedAtAction(nameof(GetRoleById), new { id = created.Id }, responseDTO);
-            return CreatedAtAction(
-                nameof(GetRoleById),
-                new { id = created.Id },
-                new ApiResponse<RoleResponseDTO> 
-                { 
-                    statusCodes = (int)Enums.ResponseStatus.Created, 
-                    message = "Role created successfully.", 
-                    data = responseDTO 
-                });
+            var success = ApiResponse<RoleResponseDTO>.Create(ResponseStatus.RoleCreatedSuccessfully, responseDTO);
+            return CreatedAtAction(nameof(GetRoleById), new { id = created.Id }, success);
         }
 
         // DELETE role
@@ -161,90 +123,60 @@ namespace StudentProj.Controllers
         {
             if (id <= 0)
             {
-                // return BadRequest("Invalid role id!");
-                return BadRequest(new FailResponseDTO 
-                { 
-                    statusCodes = (int)Enums.ResponseStatus.BadRequest, 
-                    message = "Invalid role id!" 
-                });
+                var error = ApiResponse<object>.Create(ResponseStatus.BadRequest, "Invalid role id!");
+                return StatusCode(error.StatusCodes, error);
             }
 
             var result = await _role.DeleteRoleAsync(id);
             if (!result)
             {
-                // return NotFound($"Role with id {id} not found!");
-                return NotFound(new FailResponseDTO 
-                { 
-                    statusCodes = (int)Enums.ResponseStatus.NotFound, 
-                    message = $"Role with id {id} not found!" 
-                });
+                var error = ApiResponse<object>.Create(ResponseStatus.RoleNotFound, $"Role with id {id} not found!");
+                return StatusCode(error.StatusCodes, error);
             }
 
-            // return Ok("Role deleted successfully!");
-            return Ok(new BaseResponseDTO 
-            { 
-                statusCodes = (int)Enums.ResponseStatus.Success, 
-                message = "Role deleted successfully!" 
-            });
+            var success = ApiResponse<object>.Create(ResponseStatus.RoleDeletedSuccessfully);
+            return StatusCode(success.StatusCodes, success);
         }
 
         [HttpPut("UpdateRole/{id}")]
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult> UpdateRole(int id, [FromBody] RoleDTO dto) 
         {
             if (id <= 0)
             {
-                // return BadRequest("Invalid role id!");
-                return BadRequest(new FailResponseDTO 
-                { 
-                    statusCodes = (int)Enums.ResponseStatus.BadRequest, 
-                    message = "Invalid role id!" 
-                });
+                var error = ApiResponse<object>.Create(ResponseStatus.BadRequest, "Invalid role id!");
+                return StatusCode(error.StatusCodes, error);
             }
 
             var validation = await _validator.ValidateAsync(dto);
             if (!validation.IsValid) 
             {
-                return BadRequest(validation.Errors.Select(e => new
-                {
-                    Field = e.PropertyName,
-                    Message = e.ErrorMessage
-                }));
+                var errorDetails = validation.Errors.Select(e => new { Field = e.PropertyName, Message = e.ErrorMessage }).ToList();
+                var error = ApiResponse<object>.FailureResponse("Validation failed.", 400, errorDetails);
+                return StatusCode(error.StatusCodes, error);
             }
             var existingRole = await _role.GetRoleByIdAsync(id);
             if (existingRole == null) 
             {
-                // return NotFound($"Role with id {id} not found!");
-                return NotFound(new FailResponseDTO 
-                { 
-                    statusCodes = (int)Enums.ResponseStatus.NotFound, 
-                    message = $"Role with id {id} not found!" 
-                });
+                var error = ApiResponse<object>.Create(ResponseStatus.RoleNotFound, $"Role with id {id} not found!");
+                return StatusCode(error.StatusCodes, error);
             }
             string formattedName = char.ToUpper(dto.RoleName[0]) + dto.RoleName.Substring(1).ToLower();
 
             var exists = await _role.RoleExistsAsync(formattedName);
             if (exists && !existingRole.RoleName.Equals(formattedName, StringComparison.OrdinalIgnoreCase))
             {
-                // return BadRequest($"Role '{formattedName}' already exists!");
-                return BadRequest(new FailResponseDTO 
-                { 
-                    statusCodes = (int)Enums.ResponseStatus.BadRequest, 
-                    message = $"Role '{formattedName}' already exists!" 
-                });
+                var error = ApiResponse<object>.Create(ResponseStatus.BadRequest, $"Role '{formattedName}' already exists!");
+                return StatusCode(error.StatusCodes, error);
             }
 
             existingRole.RoleName = formattedName;
             await _role.UpdateRoleAsync(id, existingRole);
-            // return NoContent();
-            return Ok(new BaseResponseDTO 
-            { 
-                statusCodes = (int)Enums.ResponseStatus.Success, 
-                message = "Role updated successfully." 
-            });
-        }
 
+            var success = ApiResponse<object>.Create(ResponseStatus.RoleUpdatedSuccessfully);
+            return StatusCode(success.StatusCodes, success);
+        }
     }
 }

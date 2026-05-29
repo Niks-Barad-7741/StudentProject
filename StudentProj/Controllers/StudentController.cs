@@ -23,24 +23,15 @@ namespace StudentProj.Controllers
         }
 
         [HttpGet("Getall")]
-        //[Authorize(Roles = "Super Admin,Admin,User")]
         [HasPrivilege("read:student")]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        //[AllowAnonymous]
-        public async Task<ActionResult<IEnumerable<StudentDTO>>> GetAll() 
+        public async Task<ActionResult> GetAll() 
         {
-            var students =await _student.GetAllStudentsasync();
-            // return Ok(students);
-            return Ok(new ApiResponse<IEnumerable<StudentDTO>> 
-            { 
-                statusCodes = (int)Enums.ResponseStatus.Success, 
-                message = ResponseStatus.Success.ToFriendlyMessage(), 
-                data = students 
-            });
-
+            var students = await _student.GetAllStudentsasync();
+            var response = ApiResponse<IEnumerable<StudentDTO>>.Create(ResponseStatus.UserRetriveSuccessfully, students);
+            return StatusCode(response.StatusCodes, response);
         }
 
-        //[Authorize(Roles = "Super Admin,Admin,User")]
         [HasPrivilege("read:student")]
         [HttpGet("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -50,12 +41,8 @@ namespace StudentProj.Controllers
             var student = await _student.GetStudentbyid(id);
             if (student == null) 
             {
-                // return NotFound($"Student with id {id} not found.");
-                return NotFound(new FailResponseDTO 
-                { 
-                    statusCodes = (int)Enums.ResponseStatus.NotFound, 
-                    message = $"Student with id {id} not found." 
-                });
+                var error = ApiResponse<object>.Create(ResponseStatus.UserNotFound, $"Student with id {id} not found.");
+                return StatusCode(error.StatusCodes, error);
             }
             var studentDTO = new StudentDTO
             {
@@ -64,17 +51,10 @@ namespace StudentProj.Controllers
                 Address = student.Address,
                 Phone = student.Phone
             };
-            // return Ok(studentDTO);
-            return Ok(new ApiResponse<StudentDTO> 
-            { 
-                statusCodes = (int)Enums.ResponseStatus.Success, 
-                message = "Student retrieved successfully.", 
-                data = studentDTO 
-            });
-
+            var response = ApiResponse<StudentDTO>.Create(ResponseStatus.UserRetriveSuccessfully, studentDTO);
+            return StatusCode(response.StatusCodes, response);
         }
 
-        //[Authorize(Roles = "Super Admin,Admin")]
         [HasPrivilege("write:student")]
         [HttpPost("Createstudent")]
         [ProducesResponseType(StatusCodes.Status201Created)]
@@ -83,12 +63,8 @@ namespace StudentProj.Controllers
         {
             if (dto == null) 
             {
-                // return BadRequest("Student data is required.");
-                return BadRequest(new FailResponseDTO 
-                { 
-                    statusCodes = (int)Enums.ResponseStatus.BadRequest, 
-                    message = "Student data is required." 
-                });
+                var error = ApiResponse<object>.Create(ResponseStatus.BadRequest, "Student data is required.");
+                return StatusCode(error.StatusCodes, error);
             }
             var student = new Student
             {
@@ -98,15 +74,12 @@ namespace StudentProj.Controllers
                 Phone = dto.Phone,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password)
             };
-             await _student.Createstudentasync(student);
+
+            await _student.Createstudentasync(student);
             if (student == null) 
             {
-                // return BadRequest("Could not create student");
-                return BadRequest(new FailResponseDTO 
-                { 
-                    statusCodes = (int)Enums.ResponseStatus.BadRequest, 
-                    message = "Could not create student" 
-                });
+                var error = ApiResponse<object>.Create(ResponseStatus.BadRequest, "Could not create student");
+                return StatusCode(error.StatusCodes, error);
             }
             var studentrole = await _registerepository.GetRoleByIdAsync(3);
             if ( studentrole != null)
@@ -120,16 +93,10 @@ namespace StudentProj.Controllers
                 Address = student.Address,
                 Phone = student.Phone
             };
-            // return CreatedAtAction(nameof(GetbyId), new { id = student.Id }, studentDTO);
-            return CreatedAtAction(nameof(GetbyId), new { id = student.Id }, new ApiResponse<StudentDTO> 
-            { 
-                statusCodes = (int)Enums.ResponseStatus.Created, 
-                message = "Student created successfully.", 
-                data = studentDTO 
-            });
+            var response = ApiResponse<StudentDTO>.Create(ResponseStatus.UserAddedSuccessfully, studentDTO);
+            return CreatedAtAction(nameof(GetbyId), new { id = student.Id }, response);
         }
 
-        //[Authorize(Roles = "Super Admin,Admin,User")]
         [HasPrivilege("read:student")]
         [HttpGet("GetbyName/{name}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -139,12 +106,8 @@ namespace StudentProj.Controllers
             var student = await _student.Getstudentbynameasync(name);
             if (student == null) 
             {
-                // return NotFound($"Student with name {name} not found.");
-                return NotFound(new FailResponseDTO 
-                { 
-                    statusCodes = (int)Enums.ResponseStatus.NotFound, 
-                    message = $"Student with name {name} not found." 
-                });
+                var error = ApiResponse<object>.Create(ResponseStatus.UserNotFound, $"Student with name {name} not found.");
+                return StatusCode(error.StatusCodes, error);
             }
             var studentDTO = new StudentDTO
             {
@@ -153,82 +116,55 @@ namespace StudentProj.Controllers
                 Address = student.Address,
                 Phone = student.Phone
             };
-            // return Ok(studentDTO);
-            return Ok(new ApiResponse<StudentDTO> 
-            { 
-                statusCodes = (int)Enums.ResponseStatus.Success, 
-                message = "Student retrieved successfully.", 
-                data = studentDTO 
-            });
+            var response = ApiResponse<StudentDTO>.Create(ResponseStatus.UserRetriveSuccessfully, studentDTO);
+            return StatusCode(response.StatusCodes, response);
         }
 
-
-        //[Authorize(Roles = "Super Admin,Admin")]
         [HasPrivilege("update:student")]
         [HttpPut("UpdateStudent/{id}")]
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]   
         public async Task<ActionResult> UpdateStudent(int id, StudentDTO dto) 
         {
             if (id <= 0) 
             {
-                // return BadRequest("Invalid student ID.");
-                return BadRequest(new FailResponseDTO 
-                { 
-                    statusCodes = (int)Enums.ResponseStatus.BadRequest, 
-                    message = "Invalid student ID." 
-                });
+                var error = ApiResponse<object>.Create(ResponseStatus.BadRequest, "Invalid student ID.");
+                return StatusCode(error.StatusCodes, error);
             }
             var existingstudent = await _student.GetStudentbyid(id);
             if (existingstudent == null) 
             {
-                // return NotFound($"Student with id {id} not found.");
-                return NotFound(new FailResponseDTO 
-                { 
-                    statusCodes = (int)Enums.ResponseStatus.NotFound, 
-                    message = $"Student with id {id} not found." 
-                });
+                var error = ApiResponse<object>.Create(ResponseStatus.UserNotFound, $"Student with id {id} not found.");
+                return StatusCode(error.StatusCodes, error);
             }
             existingstudent.Name = dto.Name;
             existingstudent.Email = dto.Email;
             existingstudent.Address = dto.Address;
             existingstudent.Phone = dto.Phone;
             await _student.UpdateStudentasync(id,existingstudent);
-            // return NoContent();
-            return Ok(new BaseResponseDTO 
-            { 
-                statusCodes = (int)Enums.ResponseStatus.Success, 
-                message = "Student updated successfully." 
-            });
+
+            var response = ApiResponse<object>.Create(ResponseStatus.UserUpdatedSuccessfully);
+            return StatusCode(response.StatusCodes, response);
         }
 
-        //[Authorize(Roles = "Super Admin,Admin")]
         [HasPrivilege("write:student")]
         [HttpPatch("UpdateStudentPartial/{id}")]
-        [ProducesResponseType(StatusCodes.Status204NoContent)]  
+        [ProducesResponseType(StatusCodes.Status200OK)]  
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult> UpdatePartial(int id, [FromBody]JsonPatchDocument<StudentDTO> patchDocument) 
         {
             if (id <= 0) 
             {
-                // return BadRequest("Invalid Student Id");
-                return BadRequest(new FailResponseDTO 
-                { 
-                    statusCodes = (int)Enums.ResponseStatus.BadRequest, 
-                    message = "Invalid Student Id" 
-                });
+                var error = ApiResponse<object>.Create(ResponseStatus.BadRequest, "Invalid Student Id");
+                return StatusCode(error.StatusCodes, error);
             }
             var existingstudent = await _student.GetStudentbyid(id);
             if (existingstudent == null) 
             {
-                // return NotFound($"Student with id {id} not found.");
-                return NotFound(new FailResponseDTO 
-                { 
-                    statusCodes = (int)Enums.ResponseStatus.NotFound, 
-                    message = $"Student with id {id} not found." 
-                });
+                var error = ApiResponse<object>.Create(ResponseStatus.UserNotFound, $"Student with id {id} not found.");
+                return StatusCode(error.StatusCodes, error);
             }
             var studentdto = new StudentDTO
             {
@@ -247,19 +183,11 @@ namespace StudentProj.Controllers
             existingstudent.Address = studentdto.Address;
             existingstudent.Phone = studentdto.Phone;
             await _student.UpdateStudentasync(id, existingstudent);
-            // return NoContent();
-            return Ok(new BaseResponseDTO 
-            { 
-                statusCodes = (int)Enums.ResponseStatus.Success, 
-                message = "Student updated successfully." 
-            });
 
-
-
+            var response = ApiResponse<object>.Create(ResponseStatus.UserUpdatedSuccessfully);
+            return StatusCode(response.StatusCodes, response);
         }
 
-
-        //[Authorize(Roles = "Super Admin,Admin")]
         [HasPrivilege("delete:student")]
         [HttpDelete("DeletebyId/{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -268,31 +196,19 @@ namespace StudentProj.Controllers
         {
             if (id <= 0) 
             {
-                // return BadRequest();
-                return BadRequest(new FailResponseDTO 
-                { 
-                    statusCodes = (int)Enums.ResponseStatus.BadRequest, 
-                    message = "Invalid student ID." 
-                });
+                var error = ApiResponse<object>.Create(ResponseStatus.BadRequest, "Invalid student ID.");
+                return StatusCode(error.StatusCodes, error);
             }
             var student = await _student.GetStudentbyid(id);
             if (student == null) 
             {
-                // return NotFound($"Student with id {id} not found.");
-                return NotFound(new FailResponseDTO 
-                { 
-                    statusCodes = (int)Enums.ResponseStatus.NotFound, 
-                    message = $"Student with id {id} not found." 
-                });
+                var error = ApiResponse<object>.Create(ResponseStatus.UserNotFound, $"Student with id {id} not found.");
+                return StatusCode(error.StatusCodes, error);
             }
             await _student.DeleteStudentasync(student);
-            // return Ok(true);
-            return Ok(new ApiResponse<bool> 
-            { 
-                statusCodes = (int)Enums.ResponseStatus.Success, 
-                message = "Student deleted successfully.", 
-                data = true 
-            });
+
+            var response = ApiResponse<bool>.Create(ResponseStatus.UserSoftDeleteSuccessfully, true);
+            return StatusCode(response.StatusCodes, response);
         }
 
         [HasPrivilege("write:student")]
@@ -303,21 +219,13 @@ namespace StudentProj.Controllers
         {
             if (id < 0)
             {
-                // return BadRequest("Invalid student ID.");
-                return BadRequest(new FailResponseDTO 
-                { 
-                    statusCodes = (int)Enums.ResponseStatus.BadRequest, 
-                    message = "Invalid student ID." 
-                });
+                var error = ApiResponse<object>.Create(ResponseStatus.BadRequest, "Invalid student ID.");
+                return StatusCode(error.StatusCodes, error);
             }
             if (dto == null) 
             {
-                // return BadRequest("Student data is required.");
-                return BadRequest(new FailResponseDTO 
-                { 
-                    statusCodes = (int)Enums.ResponseStatus.BadRequest, 
-                    message = "Student data is required." 
-                });
+                var error = ApiResponse<object>.Create(ResponseStatus.BadRequest, "Student data is required.");
+                return StatusCode(error.StatusCodes, error);
             }
             var student = new Student
             {
@@ -331,12 +239,8 @@ namespace StudentProj.Controllers
             var resultid = await _student.UpsertStudentAsync(student);
             if (resultid == 0)
             {
-                // return NotFound($"Student with ID {id} not found."); ;
-                return NotFound(new FailResponseDTO 
-                { 
-                    statusCodes = (int)Enums.ResponseStatus.NotFound, 
-                    message = $"Student with ID {id} not found." 
-                });
+                var error = ApiResponse<object>.Create(ResponseStatus.UserNotFound, $"Student with ID {id} not found.");
+                return StatusCode(error.StatusCodes, error);
             }
             if (id <= 0)
             {
@@ -346,14 +250,10 @@ namespace StudentProj.Controllers
                     await _registerepository.AssignRoleAsync(resultid, studentrole.Id);
                 }
             }
-            // return Ok($"Student with ID {resultid} was successfully saved (inserted/updated).");
-            return Ok(new ApiResponse<string> 
-            { 
-                statusCodes = (int)Enums.ResponseStatus.Success, 
-                message = $"Student with ID {resultid} was successfully saved (inserted/updated).", 
-                data = resultid.ToString() 
-            });
-        }
 
+            var status = id <= 0 ? ResponseStatus.UserAddedSuccessfully : ResponseStatus.UserUpdatedSuccessfully;
+            var response = ApiResponse<string>.Create(status, $"Student with ID {resultid} was successfully saved (inserted/updated).", resultid.ToString());
+            return StatusCode(response.StatusCodes, response);
+        }
     }
 }
