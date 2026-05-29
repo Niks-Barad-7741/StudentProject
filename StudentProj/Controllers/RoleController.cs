@@ -42,7 +42,7 @@ namespace StudentProj.Controllers
                     RoleName = r.RoleName
                 }).ToList();
 
-            var success = ApiResponse<IEnumerable<RoleResponseDTO>>.Create(ResponseStatus.UserRetriveSuccessfully, response);
+            var success = ApiResponse<IEnumerable<RoleResponseDTO>>.Create(ResponseStatus.RoleRetriveSuccessfully, response);
             return StatusCode(success.StatusCodes, success);
         }
 
@@ -71,7 +71,7 @@ namespace StudentProj.Controllers
                 RoleName = role.RoleName
             };
 
-            var success = ApiResponse<RoleResponseDTO>.Create(ResponseStatus.UserRetriveSuccessfully, responseDTO);
+            var success = ApiResponse<RoleResponseDTO>.Create(ResponseStatus.RoleRetriveSuccessfully, responseDTO);
             return StatusCode(success.StatusCodes, success);
         }
 

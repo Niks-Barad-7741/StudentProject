@@ -24,10 +24,12 @@ namespace StudentProj.Common
         public const string RoleCreatedSuccessfully = "Role Created Successfully";
         public const string RoleDeletedSuccessfully = "Role Deleted Successfully";
         public const string RoleUpdatedSuccessfully = "Role Updated Successfully";
+        public const string RoleRetriveSuccessfully = "Roles retrieved successfully.";
         
         // Privilege Operations
         public const string PrivilegeNotFound = "Privilege Not Found";
         public const string PrivilegeAssignedSuccessfully = "Privilege Assigned Successfully";
         public const string PrivilegeRevokedSuccessfully = "Privilege Revoked Successfully";
+        public const string PrivilegeRetriveSuccessfully = "Privileges retrieved successfully.";
     }
 }

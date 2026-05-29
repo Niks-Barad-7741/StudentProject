@@ -18,6 +18,8 @@ namespace StudentProj.Enums
         RoleUpdatedSuccessfully,
         PrivilegeAssignedSuccessfully,
         PrivilegeRevokedSuccessfully,
+        RoleRetriveSuccessfully,
+        PrivilegeRetriveSuccessfully,
 
         // Failure/Validation Operations
         UserAlreadyExist,
@@ -51,6 +53,8 @@ namespace StudentProj.Enums
             ResponseStatus.RoleUpdatedSuccessfully => 200,
             ResponseStatus.PrivilegeAssignedSuccessfully => 200,
             ResponseStatus.PrivilegeRevokedSuccessfully => 200,
+            ResponseStatus.RoleRetriveSuccessfully => 200,
+            ResponseStatus.PrivilegeRetriveSuccessfully => 200,
 
             ResponseStatus.UserAlreadyExist => 400,
             ResponseStatus.UserNotFound => 404,
@@ -82,6 +86,8 @@ namespace StudentProj.Enums
             ResponseStatus.RoleUpdatedSuccessfully => ApiMessages.RoleUpdatedSuccessfully,
             ResponseStatus.PrivilegeAssignedSuccessfully => ApiMessages.PrivilegeAssignedSuccessfully,
             ResponseStatus.PrivilegeRevokedSuccessfully => ApiMessages.PrivilegeRevokedSuccessfully,
+            ResponseStatus.RoleRetriveSuccessfully => ApiMessages.RoleRetriveSuccessfully,
+            ResponseStatus.PrivilegeRetriveSuccessfully => ApiMessages.PrivilegeRetriveSuccessfully,
 
             ResponseStatus.UserAlreadyExist => ApiMessages.UserAlreadyExist,
             ResponseStatus.UserNotFound => ApiMessages.UserNotFound,

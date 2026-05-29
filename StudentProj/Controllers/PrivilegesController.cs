@@ -41,7 +41,7 @@ namespace StudentProj.Controllers
                PrivilegeName = p.PrivilegeName
             });
 
-            var success = ApiResponse<IEnumerable<PrivilegeDTO>>.Create(ResponseStatus.UserRetriveSuccessfully, response);
+            var success = ApiResponse<IEnumerable<PrivilegeDTO>>.Create(ResponseStatus.PrivilegeRetriveSuccessfully, response);
             return StatusCode(success.StatusCodes, success);
         }
 
