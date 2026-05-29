@@ -6,6 +6,7 @@ using System.Net;
 using System.Text.Json;
 using System.Threading.Tasks;
 using StudentProj.Enums;
+using StudentProj.DTO;
 
 namespace StudentProj.Middleware
 {
@@ -50,21 +51,16 @@ namespace StudentProj.Middleware
                 _ => Enums.ResponseStatus.InternalServerError               // 500 Server Error
             };
 
-            context.Response.StatusCode = (int)status;
+            context.Response.StatusCode = status.GetStatusCode();
 
-            // 2. Format a clean JSON object to send back to the client
-            var errorResponse = new
-            {
-                status = (int)status,
-                message = status.ToFriendlyMessage()
-            };
+            // 2. Format a clean JSON object using ApiResponse<object> to send back to the client
+            var errorResponse = ApiResponse<object>.Create(status, exception.Message);
 
             /* Original format commented out:
             var errorResponse = new
             {
-                StatusCode = context.Response.StatusCode,
-                Message = exception.Message,
-                Details = exception.InnerException?.Message
+                status = (int)status,
+                message = status.ToFriendlyMessage()
             };
             */
 

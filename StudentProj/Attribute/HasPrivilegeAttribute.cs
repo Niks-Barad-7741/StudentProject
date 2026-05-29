@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc.Filters;
 using System;
 using System.Linq;
 using StudentProj.DTO;
+using StudentProj.Enums;
 
 namespace StudentProj.Attributes
 {
@@ -23,11 +24,8 @@ namespace StudentProj.Attributes
             if (user == null || user.Identity == null || !user.Identity.IsAuthenticated)
             {
                 // context.Result = new UnauthorizedResult(); // Returns 401 Unauthorized
-                context.Result = new ObjectResult(new FailResponseDTO 
-                { 
-                    statusCodes = 401, 
-                    message = "Unauthorized. Please log in." 
-                }) 
+                var failResponse = ApiResponse<object>.Create(ResponseStatus.Unauthorized);
+                context.Result = new ObjectResult(failResponse) 
                 { 
                     StatusCode = 401 
                 };
@@ -48,11 +46,8 @@ namespace StudentProj.Attributes
             if (!userPrivileges.Contains(_permission, StringComparer.OrdinalIgnoreCase))
             {
                 // context.Result = new ForbidResult(); // Short-circuits request & returns 403 Forbidden
-                context.Result = new ObjectResult(new FailResponseDTO 
-                { 
-                    statusCodes = 403, 
-                    message = $"Forbidden. You do not have the required privilege." 
-                }) 
+                var failResponse = ApiResponse<object>.Create(ResponseStatus.Forbidden);
+                context.Result = new ObjectResult(failResponse) 
                 { 
                     StatusCode = 403 
                 };
