@@ -7,12 +7,15 @@ using StudentProj.DTO;
 using StudentProj.Enums;
 using StudentProj.Models;
 using StudentProj.Repository;
+using System;
+using System.Collections.Generic;
 using System.Security.Claims;
 using StudentProj.Common;
+using System.Threading.Tasks;
 
 namespace StudentProj.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/students")]
     [ApiController]
     public class StudentController : ControllerBase
     {
@@ -24,7 +27,7 @@ namespace StudentProj.Controllers
             _registerepository = registerRepository;
         }
 
-        [HttpGet("Getall")]
+        [HttpGet]
         [HasPrivilege("read:student")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<ActionResult> GetAll() 
@@ -58,7 +61,7 @@ namespace StudentProj.Controllers
         }
 
         [HasPrivilege("write:student")]
-        [HttpPost("Createstudent")]
+        [HttpPost]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult> CreateStudent(RegisterDTO dto) 
@@ -107,7 +110,7 @@ namespace StudentProj.Controllers
         }
 
         [HasPrivilege("read:student")]
-        [HttpGet("GetbyName/{name}")]
+        [HttpGet("by-name/{name}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult> GetbyName(string name) 
@@ -130,7 +133,7 @@ namespace StudentProj.Controllers
         }
 
         [HasPrivilege("update:student")]
-        [HttpPut("UpdateStudent/{id}")]
+        [HttpPut("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]   
@@ -158,7 +161,7 @@ namespace StudentProj.Controllers
         }
 
         [HasPrivilege("write:student")]
-        [HttpPatch("UpdateStudentPartial/{id}")]
+        [HttpPatch("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]  
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -198,7 +201,7 @@ namespace StudentProj.Controllers
         }
 
         [HasPrivilege("delete:student")]
-        [HttpDelete("DeletebyId/{id}")]
+        [HttpDelete("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult> DeleteStudentId(int id) 
@@ -230,7 +233,7 @@ namespace StudentProj.Controllers
         }
 
         [HasPrivilege("write:student")]
-        [HttpPut("UpsertMethod")]
+        [HttpPut("upsert/{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult> UpsertStudent(int id, [FromBody] RegisterDTO dto) 
