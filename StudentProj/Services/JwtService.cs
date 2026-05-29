@@ -1,4 +1,4 @@
-﻿using Microsoft.IdentityModel.Tokens;
+using Microsoft.IdentityModel.Tokens;
 using StudentProj.Models;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -14,7 +14,7 @@ namespace StudentProj.Services
         {
             _config = config;
         }
-        public string GenerateToken(Student student,List<string>Roles,List<string> Privileges) 
+        public string GenerateToken(Student student, List<string> Roles) 
         {
             var key = new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(_config["JWT-Token"])
@@ -32,10 +32,6 @@ namespace StudentProj.Services
             foreach (var role in Roles)
             {
                 claims.Add(new Claim(ClaimTypes.Role, role));
-            }
-            foreach (var privilege in Privileges) 
-            {
-                claims.Add(new Claim("Privilege", privilege));
             }
             var token = new JwtSecurityToken(
                 claims: claims,

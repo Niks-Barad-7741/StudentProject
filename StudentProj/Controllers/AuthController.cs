@@ -21,20 +21,17 @@ namespace StudentProj.Controllers
         private readonly IRegisterRepository _auth;
         private readonly ILoginRepository _login;
         private readonly JwtService _JWT_service;
-        private readonly IPrivilegeRepository _privilege;
         private readonly ILoggingService _logging;
 
         public AuthController(
             IRegisterRepository auth,
             ILoginRepository login,
             JwtService JWT_service,
-            IPrivilegeRepository privilege,
             ILoggingService logging)
         {
             _auth = auth;
             _login = login;
             _JWT_service = JWT_service;
-            _privilege = privilege;
             _logging = logging;
         }
 
@@ -72,8 +69,7 @@ namespace StudentProj.Controllers
                 await _auth.AssignRoleAsync(student.Id, studentRole.Id);
 
             var roles = await _auth.GetStudentRolesAsync(student.Id);
-            var privileges = await _privilege.GetPrivilegeByRoleNamesAsync(roles);
-            var token = _JWT_service.GenerateToken(student, roles, privileges);
+            var token = _JWT_service.GenerateToken(student, roles);
 
             await _logging.LogActivityAsync(student.Name, student.Email, "Registration Succeeded", HttpContext);
 
@@ -110,8 +106,7 @@ namespace StudentProj.Controllers
             }
 
             var roles = await _login.GetStudentRolesAsync(student.Id);
-            var privileges = await _privilege.GetPrivilegeByRoleNamesAsync(roles);
-            var token = _JWT_service.GenerateToken(student, roles, privileges);
+            var token = _JWT_service.GenerateToken(student, roles);
 
             // Return standardized ApiResponse wrapped around LoginResponseDTO (token only)
             await _logging.LogActivityAsync(student.Name, student.Email, "Login Succeeded", HttpContext);

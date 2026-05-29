@@ -18,7 +18,7 @@ namespace StudentProj.Controllers
 {
     [Route("api/roles")]
     [ApiController]
-    [HasPrivilege("manage:roles")]
+    [HasPermission("Read", "Roles")]
     public class RoleController : ControllerBase
     {
         private readonly IRoleRepository _role;
@@ -40,6 +40,7 @@ namespace StudentProj.Controllers
 
         // GET all roles
         [HttpGet]
+        [HasPermission("Read", "Roles")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<ActionResult> GetAllRoles()
         {

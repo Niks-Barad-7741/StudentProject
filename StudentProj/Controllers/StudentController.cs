@@ -28,7 +28,7 @@ namespace StudentProj.Controllers
         }
 
         [HttpGet]
-        [HasPrivilege("read:student")]
+        [HasPermission("Read", "Students")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<ActionResult> GetAll() 
         {
@@ -37,7 +37,7 @@ namespace StudentProj.Controllers
             return StatusCode(response.StatusCodes, response);
         }
 
-        [HasPrivilege("read:student")]
+        [HasPermission("Read", "Students")]
         [HttpGet("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -60,7 +60,7 @@ namespace StudentProj.Controllers
             return StatusCode(response.StatusCodes, response);
         }
 
-        [HasPrivilege("write:student")]
+        [HasPermission("Create", "Students")]
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -109,7 +109,7 @@ namespace StudentProj.Controllers
             return CreatedAtAction(nameof(GetbyId), new { id = student.Id }, response);
         }
 
-        [HasPrivilege("read:student")]
+        [HasPermission("Read", "Students")]
         [HttpGet("by-name/{name}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -132,7 +132,7 @@ namespace StudentProj.Controllers
             return StatusCode(response.StatusCodes, response);
         }
 
-        [HasPrivilege("update:student")]
+        [HasPermission("Update", "Students")]
         [HttpPut("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -160,7 +160,7 @@ namespace StudentProj.Controllers
             return StatusCode(response.StatusCodes, response);
         }
 
-        [HasPrivilege("write:student")]
+        [HasPermission("Update", "Students")]
         [HttpPatch("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]  
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -200,7 +200,7 @@ namespace StudentProj.Controllers
             return StatusCode(response.StatusCodes, response);
         }
 
-        [HasPrivilege("delete:student")]
+        [HasPermission("Delete", "Students")]
         [HttpDelete("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -232,7 +232,7 @@ namespace StudentProj.Controllers
             return StatusCode(response.StatusCodes, response);
         }
 
-        [HasPrivilege("write:student")]
+        [HasPermission("Create", "Students")]
         [HttpPut("upsert/{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]

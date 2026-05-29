@@ -101,6 +101,7 @@ builder.Services.AddScoped<IRegisterRepository, RegisterRepository>();
 builder.Services.AddScoped<ILoginRepository, LoginRepository>();
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 builder.Services.AddScoped<IPrivilegeRepository, PrivilegeRepository>();
+builder.Services.AddScoped<IMenuRepository, MenuRepository>();
 builder.Services.AddScoped<JwtService>();
 builder.Services.AddScoped<ILoggingService, LoggingService>();
 
