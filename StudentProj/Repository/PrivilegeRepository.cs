@@ -12,16 +12,32 @@ namespace StudentProj.Repository
         {
             _dbcontext = dbcontext;
         }
-        public async Task<bool> AssignPrivilegeToRoleAsync(int roleId, int permissionId)
+
+        public async Task<bool> HasPermissionAsync(int userId, string action, string menuName)
+        {
+            return await _dbcontext.RolePrivileges
+                .Where(rp => !rp.IsDeleted
+                    && !rp.Role.IsDeleted
+                    && !rp.Privilege.IsDeleted
+                    && rp.Menu != null && !rp.Menu.IsDeleted)
+                .Where(rp => rp.Privilege.PrivilegeName.ToLower() == action.ToLower() 
+                          && rp.Menu.MenuName.ToLower() == menuName.ToLower())
+                .Where(rp => _dbcontext.StudentRoles
+                    .Any(sr => sr.StudentId == userId && sr.RoleId == rp.RoleId))
+                .AnyAsync();
+        }
+
+        public async Task<bool> AssignPrivilegeToRoleAsync(int roleId, int permissionId, int menuId)
         {
             var exists = await _dbcontext.RolePrivileges
-                           .AnyAsync(rp => rp.RoleId == roleId && rp.PrivilegeId == permissionId && !rp.IsDeleted);
+                           .AnyAsync(rp => rp.RoleId == roleId && rp.PrivilegeId == permissionId && rp.MenuId == menuId && !rp.IsDeleted);
 
             if (exists) return false;
             var rolePermission = new RolePrivileges
             {
                 RoleId = roleId,
-                PrivilegeId = permissionId
+                PrivilegeId = permissionId,
+                MenuId = menuId
             };
             await _dbcontext.RolePrivileges.AddAsync(rolePermission);
             await _dbcontext.SaveChangesAsync();
@@ -102,10 +118,10 @@ namespace StudentProj.Repository
             return true;
         }
 
-        public async Task<bool> RemovePrivilegeFromRoleAsync(int roleId, int permissionId)
+        public async Task<bool> RemovePrivilegeFromRoleAsync(int roleId, int permissionId, int menuId)
         {
             var rolePermission = await _dbcontext.RolePrivileges
-        .FirstOrDefaultAsync(rp => rp.RoleId == roleId && rp.PrivilegeId == permissionId && !rp.IsDeleted);
+        .FirstOrDefaultAsync(rp => rp.RoleId == roleId && rp.PrivilegeId == permissionId && rp.MenuId == menuId && !rp.IsDeleted);
             if (rolePermission == null) return false;
             rolePermission.IsDeleted = true;
             rolePermission.DeletedAt = DateTime.Now;

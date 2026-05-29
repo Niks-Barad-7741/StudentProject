@@ -14,7 +14,7 @@ namespace StudentProj.Controllers
 {
     [Route("api/privileges")]
     [ApiController]
-    [HasPrivilege("manage:permissions")]
+    [HasPermission("Read", "Permissions")]
     public class PrivilegesController : ControllerBase
     {
         private readonly IPrivilegeRepository _privilegeRepo;
@@ -49,6 +49,7 @@ namespace StudentProj.Controllers
 
         // 1. Create a Privilege
         [HttpPost]
+        [HasPermission("Create", "Permissions")]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult> CreatePermission([FromBody] PrivilegeDTO dto)
@@ -82,6 +83,7 @@ namespace StudentProj.Controllers
 
         // 2. Assign Privilege to Role
         [HttpPost("assign")]
+        [HasPermission("Update", "Permissions")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -95,27 +97,56 @@ namespace StudentProj.Controllers
                 return StatusCode(error.StatusCodes, error);
             }
 
-            // Check if Privilege exists
-            var privilege = await _privilegeRepo.GetPrivilegeByIdAsync(dto.PrivilegeId);
-            if (privilege == null)
+            if (string.IsNullOrWhiteSpace(dto.PrivilegeIds))
             {
-                var error = ApiResponse<object>.Create(ResponseStatus.PrivilegeNotFound, $"Privilege with ID {dto.PrivilegeId} not found!");
+                var error = ApiResponse<object>.Create(ResponseStatus.BadRequest, "Privilege IDs must not be empty.");
                 return StatusCode(error.StatusCodes, error);
+            }
+
+            List<int> privilegeIdsList;
+            try
+            {
+                privilegeIdsList = dto.PrivilegeIds.Split(',')
+                    .Select(r => int.Parse(r.Trim()))
+                    .ToList();
+            }
+            catch (FormatException)
+            {
+                var error = ApiResponse<object>.Create(ResponseStatus.BadRequest, "Privilege IDs must be a comma-separated list of numbers (e.g. '1,2').");
+                return StatusCode(error.StatusCodes, error);
+            }
+
+            // Optional: validate all privileges exist
+            foreach(var pid in privilegeIdsList)
+            {
+                var privilege = await _privilegeRepo.GetPrivilegeByIdAsync(pid);
+                if (privilege == null)
+                {
+                    var error = ApiResponse<object>.Create(ResponseStatus.PrivilegeNotFound, $"Privilege with ID {pid} not found!");
+                    return StatusCode(error.StatusCodes, error);
+                }
             }
 
             // Map them together
-            var result = await _privilegeRepo.AssignPrivilegeToRoleAsync(dto.RoleId, dto.PrivilegeId);
-            if (!result)
+            int successCount = 0;
+            foreach(var pid in privilegeIdsList)
             {
-                var error = ApiResponse<object>.Create(ResponseStatus.BadRequest, "This privilege is already assigned to this role!");
+                var result = await _privilegeRepo.AssignPrivilegeToRoleAsync(dto.RoleId, pid, dto.MenuId);
+                if(result) successCount++;
+            }
+
+            if (successCount == 0)
+            {
+                var error = ApiResponse<object>.Create(ResponseStatus.BadRequest, "These privileges are already assigned to this role for this menu!");
                 return StatusCode(error.StatusCodes, error);
             }
 
-            var success = ApiResponse<object>.Create(ResponseStatus.PrivilegeAssignedSuccessfully, $"Privilege '{privilege.PrivilegeName}' assigned to role '{role.RoleName}' successfully.");
+            var success = ApiResponse<object>.Create(ResponseStatus.PrivilegeAssignedSuccessfully, $"{successCount} Privileges assigned to role '{role.RoleName}' successfully.");
             return StatusCode(success.StatusCodes, success);
         }
 
         [HttpPut("{id}")]
+        [HasPermission("Update", "Permissions")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -159,6 +190,7 @@ namespace StudentProj.Controllers
         }
 
         [HttpDelete("{id}")]
+        [HasPermission("Delete", "Permissions")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult> DeletePrivilege(int id)
@@ -181,18 +213,44 @@ namespace StudentProj.Controllers
         }
 
         [HttpDelete("revoke")]
+        [HasPermission("Update", "Permissions")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult> RemovePrivilegeFromRole([FromBody] AssignPrivilegeDTO dto)
         {
-            var result = await _privilegeRepo.RemovePrivilegeFromRoleAsync(dto.RoleId, dto.PrivilegeId);
-            if (!result) 
+            if (string.IsNullOrWhiteSpace(dto.PrivilegeIds))
             {
-                var error = ApiResponse<object>.Create(ResponseStatus.PrivilegeNotFound, "Mapping not found or already deleted.");
+                var error = ApiResponse<object>.Create(ResponseStatus.BadRequest, "Privilege IDs must not be empty.");
                 return StatusCode(error.StatusCodes, error);
             }
 
-            var success = ApiResponse<object>.Create(ResponseStatus.PrivilegeRevokedSuccessfully, "Privilege revoked from role successfully.");
+            List<int> privilegeIdsList;
+            try
+            {
+                privilegeIdsList = dto.PrivilegeIds.Split(',')
+                    .Select(r => int.Parse(r.Trim()))
+                    .ToList();
+            }
+            catch (FormatException)
+            {
+                var error = ApiResponse<object>.Create(ResponseStatus.BadRequest, "Privilege IDs must be a comma-separated list of numbers (e.g. '1,2').");
+                return StatusCode(error.StatusCodes, error);
+            }
+
+            int successCount = 0;
+            foreach(var pid in privilegeIdsList)
+            {
+                var result = await _privilegeRepo.RemovePrivilegeFromRoleAsync(dto.RoleId, pid, dto.MenuId);
+                if (result) successCount++;
+            }
+
+            if (successCount == 0) 
+            {
+                var error = ApiResponse<object>.Create(ResponseStatus.PrivilegeNotFound, "Mappings not found or already deleted.");
+                return StatusCode(error.StatusCodes, error);
+            }
+
+            var success = ApiResponse<object>.Create(ResponseStatus.PrivilegeRevokedSuccessfully, $"{successCount} Privileges revoked from role successfully.");
             return StatusCode(success.StatusCodes, success);
         }
     }
