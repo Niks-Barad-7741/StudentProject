@@ -29,8 +29,12 @@ namespace StudentProj.Middleware
                     ? context.User.FindFirst("Email")?.Value ?? context.User.FindFirst(ClaimTypes.Email)?.Value 
                     : "Anonymous";
 
+                var name = context.User.Identity?.IsAuthenticated == true 
+                    ? context.User.FindFirst("Name")?.Value ?? context.User.FindFirst(ClaimTypes.Name)?.Value 
+                    : "Anonymous";
+
                 var action = $"API Access: {context.Response.StatusCode}";
-                await loggingService.LogActivityAsync(email, action, context);
+                await loggingService.LogActivityAsync(name, email, action, context);
             }
         }
     }

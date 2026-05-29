@@ -11,7 +11,7 @@ namespace StudentProj.Services
 {
     public interface ILoggingService
     {
-        Task LogActivityAsync(string? email, string action, HttpContext context);
+        Task LogActivityAsync(string? name, string? email, string action, HttpContext context);
     }
 
     public class LoggingService : ILoggingService
@@ -23,7 +23,7 @@ namespace StudentProj.Services
             _context = context;
         }
 
-        public async Task LogActivityAsync(string? email, string action, HttpContext context)
+        public async Task LogActivityAsync(string? name, string? email, string action, HttpContext context)
         {
             var path = context.Request.Path.Value ?? string.Empty;
             var method = context.Request.Method;
@@ -51,13 +51,14 @@ namespace StudentProj.Services
                 }
             }
 
-            // 1. Log to File using Serilog
-            Log.Information("User: {Email} | Action: {Action} | Method: {Method} | Path: {Path} | IP: {IP}", 
-                email ?? "Anonymous", action, method, path, ip);
+            // 1. Log to File using Serilog (Name first, then Email)
+            Log.Information("Name: {Name} | User: {Email} | Action: {Action} | Method: {Method} | Path: {Path} | IP: {IP}", 
+                name ?? "Anonymous", email ?? "Anonymous", action, method, path, ip);
 
             // 2. Save to Database Table
             var logEntry = new Logs
             {
+                Name = name,
                 Email = email,
                 Action = action,
                 Method = method,

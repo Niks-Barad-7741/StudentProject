@@ -12,7 +12,7 @@ using StudentProj.Data;
 namespace StudentProj.Migrations
 {
     [DbContext(typeof(StudentDbcontext))]
-    [Migration("20260528110613_AddLogsTable")]
+    [Migration("20260529070745_AddLogsTable")]
     partial class AddLogsTable
     {
         /// <inheritdoc />
@@ -46,6 +46,9 @@ namespace StudentProj.Migrations
 
                     b.Property<string>("Method")
                         .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Name")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Path")
