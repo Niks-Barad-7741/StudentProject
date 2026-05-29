@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using StudentProj.Models;
 
 namespace StudentProj.Data
@@ -13,6 +13,7 @@ namespace StudentProj.Data
         public DbSet<StudentRoles> StudentRoles { get; set; }
         public DbSet<RolePrivileges> RolePrivileges { get; set; }
         public DbSet<Privileges> Privileges { get; set; }
+        public DbSet<Menu> Menus { get; set; }
         public DbSet<Logs> Logs { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder) 
@@ -29,6 +30,14 @@ namespace StudentProj.Data
                     .WithMany(r => r.StudentRoles)
                     .HasForeignKey(sr => sr.RoleId)
                     .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<RolePrivileges>(entity =>
+            {
+                entity.HasOne(rp => rp.Menu)
+                    .WithMany(m => m.RolePrivileges)
+                    .HasForeignKey(rp => rp.MenuId)
+                    .OnDelete(DeleteBehavior.SetNull);
             });
 
             modelBuilder.Entity<Roles>().HasData(

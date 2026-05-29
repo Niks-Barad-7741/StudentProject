@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace StudentProj.Models
@@ -15,6 +15,8 @@ namespace StudentProj.Models
         [Required]
         public int PrivilegeId { get; set; }
 
+        public int? MenuId { get; set; }
+
         public bool IsDeleted { get; set; } = false;
 
         public DateTime? DeletedAt { get; set; }
@@ -25,5 +27,7 @@ namespace StudentProj.Models
         [ForeignKey("PrivilegeId")]
         public Privileges Privilege { get; set; }
 
+        [ForeignKey("MenuId")]
+        public Menu? Menu { get; set; }
     }
 }
