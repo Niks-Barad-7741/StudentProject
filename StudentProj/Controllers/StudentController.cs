@@ -7,6 +7,8 @@ using StudentProj.DTO;
 using StudentProj.Enums;
 using StudentProj.Models;
 using StudentProj.Repository;
+using System.Security.Claims;
+using StudentProj.Common;
 
 namespace StudentProj.Controllers
 {
@@ -66,13 +68,20 @@ namespace StudentProj.Controllers
                 var error = ApiResponse<object>.Create(ResponseStatus.BadRequest, "Student data is required.");
                 return StatusCode(error.StatusCodes, error);
             }
+            var creatorRole = HttpContext.User.Identity?.IsAuthenticated == true 
+                ? HttpContext.User.FindFirst(ClaimTypes.Role)?.Value ?? "Anonymous" 
+                : "Anonymous";
+
             var student = new Student
             {
                 Name = dto.Name,
                 Email = dto.Email,
                 Address = dto.Address,
                 Phone = dto.Phone,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password)
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = creatorRole,
+                IpAddress = IpHelper.GetClientIpAddress(HttpContext)
             };
 
             await _student.Createstudentasync(student);
@@ -199,12 +208,21 @@ namespace StudentProj.Controllers
                 var error = ApiResponse<object>.Create(ResponseStatus.BadRequest, "Invalid student ID.");
                 return StatusCode(error.StatusCodes, error);
             }
+
             var student = await _student.GetStudentbyid(id);
-            if (student == null) 
+            if (student == null)
             {
                 var error = ApiResponse<object>.Create(ResponseStatus.UserNotFound, $"Student with id {id} not found.");
                 return StatusCode(error.StatusCodes, error);
             }
+
+            var deleterRole = HttpContext.User.Identity?.IsAuthenticated == true 
+                ? HttpContext.User.FindFirst(ClaimTypes.Role)?.Value ?? "Anonymous" 
+                : "Anonymous";
+
+            student.IsDeleted = true;
+            student.DeletedAt = DateTime.UtcNow;
+            student.DeletedBy = deleterRole;
             await _student.DeleteStudentasync(student);
 
             var response = ApiResponse<bool>.Create(ResponseStatus.UserSoftDeleteSuccessfully, true);
@@ -227,6 +245,10 @@ namespace StudentProj.Controllers
                 var error = ApiResponse<object>.Create(ResponseStatus.BadRequest, "Student data is required.");
                 return StatusCode(error.StatusCodes, error);
             }
+            var actorRole = HttpContext.User.Identity?.IsAuthenticated == true 
+                ? HttpContext.User.FindFirst(ClaimTypes.Role)?.Value ?? "Anonymous" 
+                : "Anonymous";
+
             var student = new Student
             {
                 Id = id,
@@ -234,7 +256,10 @@ namespace StudentProj.Controllers
                 Email = dto.Email,
                 Address = dto.Address,
                 Phone = dto.Phone,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password)
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = actorRole,
+                IpAddress = IpHelper.GetClientIpAddress(HttpContext)
             };
             var resultid = await _student.UpsertStudentAsync(student);
             if (resultid == 0)

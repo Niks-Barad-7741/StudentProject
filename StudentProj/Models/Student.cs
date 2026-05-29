@@ -1,4 +1,6 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace StudentProj.Models
@@ -33,6 +35,15 @@ namespace StudentProj.Models
         public bool IsDeleted { get; set; } = false;
 
         public DateTime? DeletedAt { get; set; }
+
+        // Audit Columns (Option A - Appended at the end of the table)
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        public string? CreatedBy { get; set; }
+
+        public string? DeletedBy { get; set; }
+
+        public string? IpAddress { get; set; }
 
         public ICollection<StudentRoles> StudentRoles { get; set; }
     }

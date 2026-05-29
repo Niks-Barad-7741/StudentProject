@@ -7,6 +7,7 @@ using StudentProj.Repository;
 using StudentProj.Services;
 using StudentProj.Enums;
 using System.Security.Claims;
+using StudentProj.Common;
 
 namespace StudentProj.Controllers
 {
@@ -52,7 +53,10 @@ namespace StudentProj.Controllers
                 Email = dto.Email,
                 Address = dto.Address,
                 Phone = dto.Phone,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password)
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = "User", // Default for self-registration
+                IpAddress = IpHelper.GetClientIpAddress(HttpContext)
             };
 
             await _auth.RegisterAsync(student);
