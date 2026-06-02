@@ -139,6 +139,13 @@ namespace StudentProj.Controllers
                 return StatusCode(errorResponse.StatusCodes, errorResponse);
             }
 
+            // Prevent spamming and potential thread DoS (Rate Limit: 1 minute between OTP requests)
+            if (student.ResetOtpExpiry != null && DateTimeHelper.GetIndianStandardTime() < student.ResetOtpExpiry)
+            {
+                var errorResponse = ApiResponse<object>.Create(ResponseStatus.BadRequest, "An active OTP was already sent. Please wait 1 minute before requesting a new one.");
+                return StatusCode(errorResponse.StatusCodes, errorResponse);
+            }
+
             // Generate 6-digit OTP
             var otp = new Random().Next(100000, 999999).ToString();
             

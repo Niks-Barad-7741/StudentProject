@@ -55,21 +55,14 @@ namespace StudentProj.Attributes
                 return;
             }
 
-            // 4. Query the database dynamically to check permission
-            var privilegeRepo = context.HttpContext.RequestServices.GetService<IPrivilegeRepository>();
-            if (privilegeRepo == null)
-            {
-                var failResponse = ApiResponse<object>.Create(ResponseStatus.Forbidden);
-                context.Result = new ObjectResult(failResponse) 
-                { 
-                    StatusCode = 500 
-                };
-                return;
-            }
+            // 4. Check permissions locally from claims inside the JWT token
+            string requiredPermission = $"{_permission}:{_menuName}";
+            bool hasAccess = user.Claims.Any(c => 
+                c.Type.Equals("Permission", StringComparison.OrdinalIgnoreCase) && 
+                c.Value.Equals(requiredPermission, StringComparison.OrdinalIgnoreCase)
+            );
 
-            bool hasAccess = await privilegeRepo.HasPermissionAsync(userId, _permission, _menuName);
-
-            // 5. Block access if database returns false
+            // 5. Block access if permission claim is not found
             if (!hasAccess)
             {
                 var failResponse = ApiResponse<object>.Create(ResponseStatus.Forbidden);

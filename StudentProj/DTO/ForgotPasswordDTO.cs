@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 
 namespace StudentProj.DTO
@@ -20,6 +21,7 @@ namespace StudentProj.DTO
         public string Otp { get; set; }
 
         [Required]
+        [DefaultValue("")]
         [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$", ErrorMessage = "Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character.")]
         public string NewPassword { get; set; }
     }
