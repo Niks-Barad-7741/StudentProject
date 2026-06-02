@@ -41,9 +41,18 @@ namespace StudentProj.Models
 
         public string? CreatedBy { get; set; }
 
+        public DateTime? UpdatedAt { get; set; }
+
+        public string? UpdatedBy { get; set; }
+
         public string? DeletedBy { get; set; }
 
         public string? IpAddress { get; set; }
+
+        // OTP Tracking
+        public string? ResetOtp { get; set; }
+
+        public DateTime? ResetOtpExpiry { get; set; }
 
         public ICollection<StudentRoles> StudentRoles { get; set; }
     }

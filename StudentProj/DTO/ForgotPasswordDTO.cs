@@ -2,30 +2,25 @@ using System.ComponentModel.DataAnnotations;
 
 namespace StudentProj.DTO
 {
-    public class RegisterDTO
+    public class ForgotPasswordDTO
     {
         [Required]
-        [StringLength(50, MinimumLength = 3)]
+        [EmailAddress]
+        public string Email { get; set; }
+    }
 
-        public string Name { get; set; }
-
+    public class ResetPasswordDTO
+    {
         [Required]
         [EmailAddress]
-        [StringLength(50)]
-
         public string Email { get; set; }
 
         [Required]
-        [StringLength(200)]
-        public string Address { get; set; }
-
-        [Required]
-        [StringLength(10, MinimumLength = 10)]
-        [Phone]
-        public string Phone { get; set; }
+        [StringLength(6, MinimumLength = 6)]
+        public string Otp { get; set; }
 
         [Required]
         [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$", ErrorMessage = "Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character.")]
-        public string Password { get; set; }
+        public string NewPassword { get; set; }
     }
 }

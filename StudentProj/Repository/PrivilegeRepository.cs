@@ -19,11 +19,12 @@ namespace StudentProj.Repository
                 .Where(rp => !rp.IsDeleted
                     && !rp.Role.IsDeleted
                     && !rp.Privilege.IsDeleted
-                    && rp.Menu != null && !rp.Menu.IsDeleted)
+                    && rp.Menu != null && !rp.Menu.IsDeleted
+                    )
                 .Where(rp => rp.Privilege.PrivilegeName.ToLower() == action.ToLower() 
                           && rp.Menu.MenuName.ToLower() == menuName.ToLower())
                 .Where(rp => _dbcontext.StudentRoles
-                    .Any(sr => sr.StudentId == userId && sr.RoleId == rp.RoleId))
+                    .Any(sr => sr.StudentId == userId && sr.RoleId == rp.RoleId && !sr.IsDeleted))
                 .AnyAsync();
         }
 

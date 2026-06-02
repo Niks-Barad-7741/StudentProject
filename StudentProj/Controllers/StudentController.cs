@@ -71,6 +71,14 @@ namespace StudentProj.Controllers
                 var error = ApiResponse<object>.Create(ResponseStatus.BadRequest, "Student data is required.");
                 return StatusCode(error.StatusCodes, error);
             }
+
+            var existing = await _registerepository.GetStudentbyphoneasync(dto.Phone);
+            if (existing != null)
+            {
+                var errorResponse = ApiResponse<object>.Create(ResponseStatus.UserAlreadyExist, "Phone number already registered!");
+                return StatusCode(errorResponse.StatusCodes, errorResponse);
+            }
+
             var creatorRole = HttpContext.User.Identity?.IsAuthenticated == true 
                 ? HttpContext.User.FindFirst(ClaimTypes.Role)?.Value ?? "Anonymous" 
                 : "Anonymous";
@@ -82,7 +90,7 @@ namespace StudentProj.Controllers
                 Address = dto.Address,
                 Phone = dto.Phone,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
-                CreatedAt = DateTime.UtcNow,
+                CreatedAt = DateTimeHelper.GetIndianStandardTime(),
                 CreatedBy = creatorRole,
                 IpAddress = IpHelper.GetClientIpAddress(HttpContext)
             };
@@ -150,10 +158,25 @@ namespace StudentProj.Controllers
                 var error = ApiResponse<object>.Create(ResponseStatus.UserNotFound, $"Student with id {id} not found.");
                 return StatusCode(error.StatusCodes, error);
             }
+
+            var existingByPhone = await _registerepository.GetStudentbyphoneasync(dto.Phone);
+            if (existingByPhone != null && existingByPhone.Id != id)
+            {
+                var errorResponse = ApiResponse<object>.Create(ResponseStatus.UserAlreadyExist, "Phone number already registered!");
+                return StatusCode(errorResponse.StatusCodes, errorResponse);
+            }
+
             existingstudent.Name = dto.Name;
             existingstudent.Email = dto.Email;
             existingstudent.Address = dto.Address;
             existingstudent.Phone = dto.Phone;
+            
+            var actorRole = HttpContext.User.Identity?.IsAuthenticated == true 
+                ? HttpContext.User.FindFirst(ClaimTypes.Role)?.Value ?? "Anonymous" 
+                : "Anonymous";
+            existingstudent.UpdatedAt = DateTimeHelper.GetIndianStandardTime();
+            existingstudent.UpdatedBy = actorRole;
+
             await _student.UpdateStudentasync(id,existingstudent);
 
             var response = ApiResponse<object>.Create(ResponseStatus.UserUpdatedSuccessfully);
@@ -190,10 +213,25 @@ namespace StudentProj.Controllers
             {
                 return BadRequest(ModelState);
             }
+
+            var existingByPhone = await _registerepository.GetStudentbyphoneasync(studentdto.Phone);
+            if (existingByPhone != null && existingByPhone.Id != id)
+            {
+                var errorResponse = ApiResponse<object>.Create(ResponseStatus.UserAlreadyExist, "Phone number already registered!");
+                return StatusCode(errorResponse.StatusCodes, errorResponse);
+            }
+
             existingstudent.Name = studentdto.Name;
             existingstudent.Email = studentdto.Email;
             existingstudent.Address = studentdto.Address;
             existingstudent.Phone = studentdto.Phone;
+            
+            var actorRole = HttpContext.User.Identity?.IsAuthenticated == true 
+                ? HttpContext.User.FindFirst(ClaimTypes.Role)?.Value ?? "Anonymous" 
+                : "Anonymous";
+            existingstudent.UpdatedAt = DateTimeHelper.GetIndianStandardTime();
+            existingstudent.UpdatedBy = actorRole;
+
             await _student.UpdateStudentasync(id, existingstudent);
 
             var response = ApiResponse<object>.Create(ResponseStatus.UserUpdatedSuccessfully);
@@ -224,7 +262,7 @@ namespace StudentProj.Controllers
                 : "Anonymous";
 
             student.IsDeleted = true;
-            student.DeletedAt = DateTime.UtcNow;
+            student.DeletedAt = DateTimeHelper.GetIndianStandardTime();
             student.DeletedBy = deleterRole;
             await _student.DeleteStudentasync(student);
 
@@ -233,12 +271,14 @@ namespace StudentProj.Controllers
         }
 
         [HasPermission("Create", "Students")]
-        [HttpPut("upsert/{id}")]
+        [HttpPut("upsert/{id?}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult> UpsertStudent(int id, [FromBody] RegisterDTO dto) 
+        public async Task<ActionResult> UpsertStudent(int? id, [FromBody] RegisterDTO dto) 
         {
-            if (id < 0)
+            int studentId = id ?? 0;
+
+            if (studentId < 0)
             {
                 var error = ApiResponse<object>.Create(ResponseStatus.BadRequest, "Invalid student ID.");
                 return StatusCode(error.StatusCodes, error);
@@ -248,29 +288,39 @@ namespace StudentProj.Controllers
                 var error = ApiResponse<object>.Create(ResponseStatus.BadRequest, "Student data is required.");
                 return StatusCode(error.StatusCodes, error);
             }
+
+            var existingByPhone = await _registerepository.GetStudentbyphoneasync(dto.Phone);
+            if (existingByPhone != null && (studentId <= 0 || existingByPhone.Id != studentId))
+            {
+                var errorResponse = ApiResponse<object>.Create(ResponseStatus.UserAlreadyExist, "Phone number already registered!");
+                return StatusCode(errorResponse.StatusCodes, errorResponse);
+            }
+
             var actorRole = HttpContext.User.Identity?.IsAuthenticated == true 
                 ? HttpContext.User.FindFirst(ClaimTypes.Role)?.Value ?? "Anonymous" 
                 : "Anonymous";
 
             var student = new Student
             {
-                Id = id,
+                Id = studentId,
                 Name = dto.Name,
                 Email = dto.Email,
                 Address = dto.Address,
                 Phone = dto.Phone,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
-                CreatedAt = DateTime.UtcNow,
+                PasswordHash = studentId <= 0 ? BCrypt.Net.BCrypt.HashPassword(dto.Password) : null!, // Only hash for new inserts
+                CreatedAt = DateTimeHelper.GetIndianStandardTime(),
                 CreatedBy = actorRole,
+                UpdatedAt = studentId > 0 ? DateTimeHelper.GetIndianStandardTime() : null,
+                UpdatedBy = studentId > 0 ? actorRole : null,
                 IpAddress = IpHelper.GetClientIpAddress(HttpContext)
             };
             var resultid = await _student.UpsertStudentAsync(student);
             if (resultid == 0)
             {
-                var error = ApiResponse<object>.Create(ResponseStatus.UserNotFound, $"Student with ID {id} not found.");
+                var error = ApiResponse<object>.Create(ResponseStatus.UserNotFound, $"Student with ID {studentId} not found.");
                 return StatusCode(error.StatusCodes, error);
             }
-            if (id <= 0)
+            if (studentId <= 0)
             {
                 var studentrole = await _registerepository.GetRoleByIdAsync(3);
                 if (studentrole != null)
@@ -279,7 +329,7 @@ namespace StudentProj.Controllers
                 }
             }
 
-            var status = id <= 0 ? ResponseStatus.UserAddedSuccessfully : ResponseStatus.UserUpdatedSuccessfully;
+            var status = studentId <= 0 ? ResponseStatus.UserAddedSuccessfully : ResponseStatus.UserUpdatedSuccessfully;
             var response = ApiResponse<string>.Create(status, $"Student with ID {resultid} was successfully saved (inserted/updated).", resultid.ToString());
             return StatusCode(response.StatusCodes, response);
         }

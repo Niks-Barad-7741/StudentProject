@@ -120,7 +120,14 @@ namespace StudentProj.Repository
                 existingStudent.Email = student.Email;
                 existingStudent.Address = student.Address;
                 existingStudent.Phone = student.Phone;
-                existingStudent.PasswordHash = student.PasswordHash;
+                existingStudent.UpdatedAt = student.UpdatedAt;
+                existingStudent.UpdatedBy = student.UpdatedBy;
+
+                // Only set password hash if it was provided (new inserts handled above, but just in case)
+                if (!string.IsNullOrEmpty(student.PasswordHash))
+                {
+                    existingStudent.PasswordHash = student.PasswordHash;
+                }
 
                 _context.Student.Update(existingStudent);
                 await _context.SaveChangesAsync();

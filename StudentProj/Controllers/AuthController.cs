@@ -11,6 +11,9 @@ using StudentProj.Common;
 using System;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
+using System.Net.Mail;
+using System.Net;
 
 namespace StudentProj.Controllers
 {
@@ -22,17 +25,23 @@ namespace StudentProj.Controllers
         private readonly ILoginRepository _login;
         private readonly JwtService _JWT_service;
         private readonly ILoggingService _logging;
+        private readonly IStudent _student;
+        private readonly IConfiguration _config;
 
         public AuthController(
             IRegisterRepository auth,
             ILoginRepository login,
             JwtService JWT_service,
-            ILoggingService logging)
+            ILoggingService logging,
+            IStudent student,
+            IConfiguration config)
         {
             _auth = auth;
             _login = login;
             _JWT_service = JWT_service;
             _logging = logging;
+            _student = student;
+            _config = config;
         }
 
         [HttpPost("register")]
@@ -57,7 +66,7 @@ namespace StudentProj.Controllers
                 Address = dto.Address,
                 Phone = dto.Phone,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
-                CreatedAt = DateTime.UtcNow,
+                CreatedAt = DateTimeHelper.GetIndianStandardTime(),
                 CreatedBy = "User", // Default for self-registration
                 IpAddress = IpHelper.GetClientIpAddress(HttpContext)
             };
@@ -115,6 +124,92 @@ namespace StudentProj.Controllers
                 Token = token
             };
             var response = ApiResponse<LoginResponseDTO>.Create(ResponseStatus.UserLoginSuccessfully, authData);
+            return StatusCode(response.StatusCodes, response);
+        }
+        [HttpPost("forgot-password")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult> ForgotPassword([FromBody] ForgotPasswordDTO dto)
+        {
+            var student = await _login.GetStudentbyemailasync(dto.Email);
+            if (student == null)
+            {
+                var errorResponse = ApiResponse<object>.Create(ResponseStatus.UserNotFound, "User not found with that email.");
+                return StatusCode(errorResponse.StatusCodes, errorResponse);
+            }
+
+            // Generate 6-digit OTP
+            var otp = new Random().Next(100000, 999999).ToString();
+            
+            // Save to DB with 1-minute expiration
+            student.ResetOtp = otp;
+            student.ResetOtpExpiry = DateTimeHelper.GetIndianStandardTime().AddMinutes(1);
+            await _student.UpdateStudentasync(student.Id, student);
+
+            // Send email
+            try
+            {
+                var emailSettings = _config.GetSection("EmailSettings");
+                using var client = new SmtpClient(emailSettings["SmtpServer"], int.Parse(emailSettings["SmtpPort"]))
+                {
+                    Credentials = new NetworkCredential(emailSettings["SenderEmail"], emailSettings["AppPassword"]),
+                    EnableSsl = true
+                };
+
+                var mailMessage = new MailMessage
+                {
+                    From = new MailAddress(emailSettings["SenderEmail"], emailSettings["SenderName"]),
+                    Subject = "Your Password Reset OTP",
+                    Body = $"Your 6-digit OTP for password reset is: <b>{otp}</b><br/><br/>This code expires in 1 minute.",
+                    IsBodyHtml = true
+                };
+                mailMessage.To.Add(dto.Email);
+
+                await client.SendMailAsync(mailMessage);
+            }
+            catch (Exception ex)
+            {
+                var errorResponse = ApiResponse<object>.Create(ResponseStatus.BadRequest, $"Failed to send email. Error: {ex.Message}");
+                return StatusCode(errorResponse.StatusCodes, errorResponse);
+            }
+
+            var response = ApiResponse<object>.Create(ResponseStatus.UserUpdatedSuccessfully, "OTP has been sent to your email.");
+            return StatusCode(response.StatusCodes, response);
+        }
+
+        [HttpPost("reset-password")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult> ResetPassword([FromBody] ResetPasswordDTO dto)
+        {
+            var student = await _login.GetStudentbyemailasync(dto.Email);
+            if (student == null)
+            {
+                var errorResponse = ApiResponse<object>.Create(ResponseStatus.UserNotFound, "User not found with that email.");
+                return StatusCode(errorResponse.StatusCodes, errorResponse);
+            }
+
+            if (student.ResetOtp != dto.Otp)
+            {
+                var errorResponse = ApiResponse<object>.Create(ResponseStatus.BadRequest, "Invalid OTP.");
+                return StatusCode(errorResponse.StatusCodes, errorResponse);
+            }
+
+            if (student.ResetOtpExpiry == null || DateTimeHelper.GetIndianStandardTime() > student.ResetOtpExpiry)
+            {
+                var errorResponse = ApiResponse<object>.Create(ResponseStatus.BadRequest, "OTP has expired.");
+                return StatusCode(errorResponse.StatusCodes, errorResponse);
+            }
+
+            // Update password
+            student.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
+            student.ResetOtp = null; // Clear OTP
+            student.ResetOtpExpiry = null;
+            
+            await _student.UpdateStudentasync(student.Id, student);
+
+            var response = ApiResponse<object>.Create(ResponseStatus.UserUpdatedSuccessfully, "Password reset successfully. You can now login.");
             return StatusCode(response.StatusCodes, response);
         }
     }
