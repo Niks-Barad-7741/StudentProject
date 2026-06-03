@@ -1,7 +1,7 @@
 ﻿using StudentProj.Models;
 using System.Data;
 
-namespace StudentProj.Repository
+namespace StudentProj.Repository_Interface
 {
     public interface IRegisterRepository
     {

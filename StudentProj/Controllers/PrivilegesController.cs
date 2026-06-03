@@ -4,11 +4,11 @@ using Microsoft.AspNetCore.Mvc;
 using StudentProj.Attributes;
 using StudentProj.DTO;
 using StudentProj.Models;
-using StudentProj.Repository;
 using StudentProj.Enums;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using StudentProj.Repository_Interface;
 
 namespace StudentProj.Controllers
 {

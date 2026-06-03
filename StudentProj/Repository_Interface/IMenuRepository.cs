@@ -1,6 +1,6 @@
 using StudentProj.Models;
 
-namespace StudentProj.Repository
+namespace StudentProj.Repository_Interface
 {
     public interface IMenuRepository
     {
@@ -11,5 +11,6 @@ namespace StudentProj.Repository
         Task<Menu> CreateMenuAsync(Menu menu);
         Task<bool> UpdateMenuAsync(int id, Menu menu);
         Task<bool> DeleteMenuAsync(int id);
+        Task<List<Menu>> GetMenusFromUserAsync(int userId, List<string>Roles);
     }
 }

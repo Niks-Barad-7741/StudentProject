@@ -1,6 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using StudentProj.Data;
 using StudentProj.Models;
+using StudentProj.Repository_Interface;
 
 namespace StudentProj.Repository
 {
@@ -42,6 +43,21 @@ namespace StudentProj.Repository
         // create role
         public async Task<Roles> CreateRoleAsync(Roles role)
         {
+            var existing = await _dbcontext.Roles
+                .FirstOrDefaultAsync(r => r.RoleName.ToLower() == role.RoleName.ToLower());
+
+            if (existing != null)
+            {
+                if (existing.IsDeleted)
+                {
+                    existing.IsDeleted = false;
+                    existing.DeletedAt = null;
+                    _dbcontext.Roles.Update(existing);
+                    await _dbcontext.SaveChangesAsync();
+                }
+                return existing;
+            }
+
             await _dbcontext.Roles.AddAsync(role);
             await _dbcontext.SaveChangesAsync();
             return role;

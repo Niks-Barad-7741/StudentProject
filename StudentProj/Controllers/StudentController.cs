@@ -6,12 +6,12 @@ using StudentProj.Attributes;
 using StudentProj.DTO;
 using StudentProj.Enums;
 using StudentProj.Models;
-using StudentProj.Repository;
 using System;
 using System.Collections.Generic;
 using System.Security.Claims;
 using StudentProj.Common;
 using System.Threading.Tasks;
+using StudentProj.Repository_Interface;
 
 namespace StudentProj.Controllers
 {

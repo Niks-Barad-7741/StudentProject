@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Mvc;
 using StudentProj.Attributes;
 using StudentProj.DTO;
 using StudentProj.Models;
-using StudentProj.Repository;
 using StudentProj.Enums;
 using StudentProj.Common;
 using StudentProj.Services;
@@ -13,6 +12,7 @@ using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using System;
+using StudentProj.Repository_Interface;
 
 namespace StudentProj.Controllers
 {

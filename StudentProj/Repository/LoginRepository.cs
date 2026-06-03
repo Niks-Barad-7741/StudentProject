@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using StudentProj.Data;
 using StudentProj.Models;
+using StudentProj.Repository_Interface;
 
 namespace StudentProj.Repository
 {

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using StudentProj.Data;
 using StudentProj.Models;
+using StudentProj.Repository_Interface;
 
 namespace StudentProj.Repository
 {
@@ -30,15 +31,30 @@ namespace StudentProj.Repository
 
         public async Task<bool> AssignPrivilegeToRoleAsync(int roleId, int permissionId, int menuId)
         {
-            var exists = await _dbcontext.RolePrivileges
-                           .AnyAsync(rp => rp.RoleId == roleId && rp.PrivilegeId == permissionId && rp.MenuId == menuId && !rp.IsDeleted);
+            var existing = await _dbcontext.RolePrivileges
+                .FirstOrDefaultAsync(rp => rp.RoleId == roleId 
+                                        && rp.PrivilegeId == permissionId 
+                                        && (rp.MenuId == menuId || (menuId == 0 && rp.MenuId == null)));
 
-            if (exists) return false;
+            if (existing != null)
+            {
+                if (!existing.IsDeleted) 
+                {
+                    return false;
+                }
+
+                existing.IsDeleted = false;
+                existing.DeletedAt = null;
+                _dbcontext.RolePrivileges.Update(existing);
+                await _dbcontext.SaveChangesAsync();
+                return true;
+            }
+
             var rolePermission = new RolePrivileges
             {
                 RoleId = roleId,
                 PrivilegeId = permissionId,
-                MenuId = menuId
+                MenuId = menuId == 0 ? null : menuId
             };
             await _dbcontext.RolePrivileges.AddAsync(rolePermission);
             await _dbcontext.SaveChangesAsync();
@@ -47,6 +63,21 @@ namespace StudentProj.Repository
 
         public async Task<Privileges> CreatePrivilegeAsync(Privileges permission)
         {
+            var existing = await _dbcontext.Privileges
+                .FirstOrDefaultAsync(p => p.PrivilegeName.ToLower() == permission.PrivilegeName.ToLower());
+
+            if (existing != null)
+            {
+                if (existing.IsDeleted)
+                {
+                    existing.IsDeleted = false;
+                    existing.DeletedAt = null;
+                    _dbcontext.Privileges.Update(existing);
+                    await _dbcontext.SaveChangesAsync();
+                }
+                return existing;
+            }
+
             await _dbcontext.Privileges.AddAsync(permission);
             await _dbcontext.SaveChangesAsync();
             return permission;
@@ -122,7 +153,10 @@ namespace StudentProj.Repository
         public async Task<bool> RemovePrivilegeFromRoleAsync(int roleId, int permissionId, int menuId)
         {
             var rolePermission = await _dbcontext.RolePrivileges
-        .FirstOrDefaultAsync(rp => rp.RoleId == roleId && rp.PrivilegeId == permissionId && rp.MenuId == menuId && !rp.IsDeleted);
+                .FirstOrDefaultAsync(rp => rp.RoleId == roleId 
+                                        && rp.PrivilegeId == permissionId 
+                                        && (rp.MenuId == menuId || (menuId == 0 && rp.MenuId == null)) 
+                                        && !rp.IsDeleted);
             if (rolePermission == null) return false;
             rolePermission.IsDeleted = true;
             rolePermission.DeletedAt = DateTime.Now;

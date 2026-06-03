@@ -5,7 +5,6 @@ using StudentProj.Attributes;
 using StudentProj.DTO;
 using StudentProj.Enums;
 using StudentProj.Models;
-using StudentProj.Repository;
 using StudentProj.Services;
 using StudentProj.Common;
 using System;
@@ -14,6 +13,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using System.Net.Mail;
 using System.Net;
+using StudentProj.Repository_Interface;
 
 namespace StudentProj.Controllers
 {
@@ -79,13 +79,19 @@ namespace StudentProj.Controllers
 
             var roles = await _auth.GetStudentRolesAsync(student.Id);
             var token = _JWT_service.GenerateToken(student, roles);
+            var refreshToken = _JWT_service.GenerateRefreshToken();
+
+            student.RefereshToken = refreshToken;
+            student.RefereshTokenExpiryTime = DateTimeHelper.GetIndianStandardTime().AddDays(7);
+            await _student.UpdateStudentasync(student.Id, student);
 
             await _logging.LogActivityAsync(student.Name, student.Email, "Registration Succeeded", HttpContext);
 
             // Standardize return payload to match login format (using ApiResponse<LoginResponseDTO>)
             var authData = new LoginResponseDTO
             {
-                Token = token
+                Token = token,
+                RefreshToken = refreshToken
             };
             var response = ApiResponse<LoginResponseDTO>.Create(ResponseStatus.UserRegisterSuccessfully, authData);
             return StatusCode(response.StatusCodes, response);
@@ -116,12 +122,18 @@ namespace StudentProj.Controllers
 
             var roles = await _login.GetStudentRolesAsync(student.Id);
             var token = _JWT_service.GenerateToken(student, roles);
+            var refreshToken = _JWT_service.GenerateRefreshToken();
+
+            student.RefereshToken = refreshToken;
+            student.RefereshTokenExpiryTime = DateTimeHelper.GetIndianStandardTime().AddDays(7);
+            await _student.UpdateStudentasync(student.Id, student);
 
             // Return standardized ApiResponse wrapped around LoginResponseDTO (token only)
             await _logging.LogActivityAsync(student.Name, student.Email, "Login Succeeded", HttpContext);
             var authData = new LoginResponseDTO
             {
-                Token = token
+                Token = token,
+                RefreshToken = refreshToken
             };
             var response = ApiResponse<LoginResponseDTO>.Create(ResponseStatus.UserLoginSuccessfully, authData);
             return StatusCode(response.StatusCodes, response);
@@ -218,6 +230,66 @@ namespace StudentProj.Controllers
 
             var response = ApiResponse<object>.Create(ResponseStatus.UserUpdatedSuccessfully, "Password reset successfully. You can now login.");
             return StatusCode(response.StatusCodes, response);
+        }
+        [HttpPost("refresh")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult> Refresh([FromBody] TokenRequestDTO dto)
+        {
+            if (dto == null || string.IsNullOrEmpty(dto.AccessToken) || string.IsNullOrEmpty(dto.RefereshToken))
+            {
+                var error = ApiResponse<object>.Create(ResponseStatus.BadRequest, "Invalid client request.");
+                return StatusCode(error.StatusCodes, error);
+            }
+
+            ClaimsPrincipal? principal;
+            try
+            {
+                principal = _JWT_service.GetClaimsPrincipalFromExpiredToken(dto.AccessToken);
+            }
+            catch (Exception)
+            {
+                var error = ApiResponse<object>.Create(ResponseStatus.BadRequest, "Invalid access token.");
+                return StatusCode(error.StatusCodes, error);
+            }
+
+            if (principal == null)
+            {
+                var error = ApiResponse<object>.Create(ResponseStatus.BadRequest, "Invalid access token.");
+                return StatusCode(error.StatusCodes, error);
+            }
+
+            var emailClaim = principal.FindFirst("Email") ?? principal.FindFirst(ClaimTypes.Email);
+            if (emailClaim == null)
+            {
+                var error = ApiResponse<object>.Create(ResponseStatus.BadRequest, "Invalid access token claims.");
+                return StatusCode(error.StatusCodes, error);
+            }
+
+            var student = await _login.GetStudentbyemailasync(emailClaim.Value);
+            if (student == null || student.RefereshToken != dto.RefereshToken || student.RefereshTokenExpiryTime <= DateTimeHelper.GetIndianStandardTime())
+            {
+                var error = ApiResponse<object>.Create(ResponseStatus.BadRequest, "Invalid refresh token or token has expired.");
+                return StatusCode(error.StatusCodes, error);
+            }
+
+            var roles = await _login.GetStudentRolesAsync(student.Id);
+            var newAccessToken = _JWT_service.GenerateToken(student, roles);
+            var newRefreshToken = _JWT_service.GenerateRefreshToken();
+
+            // Rotate refresh token (save new one to DB)
+            student.RefereshToken = newRefreshToken;
+            student.RefereshTokenExpiryTime = DateTimeHelper.GetIndianStandardTime().AddDays(7);
+            await _student.UpdateStudentasync(student.Id, student);
+
+            var responseData = new LoginResponseDTO
+            {
+                Token = newAccessToken,
+                RefreshToken = newRefreshToken
+            };
+
+            var success = ApiResponse<LoginResponseDTO>.Create(ResponseStatus.UserLoginSuccessfully, responseData);
+            return StatusCode(success.StatusCodes, success);
         }
     }
 }

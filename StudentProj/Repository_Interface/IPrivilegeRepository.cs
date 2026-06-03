@@ -1,6 +1,6 @@
 using StudentProj.Models;
 
-namespace StudentProj.Repository
+namespace StudentProj.Repository_Interface
 {
     public interface IPrivilegeRepository
     {

@@ -35,6 +35,9 @@ namespace StudentProj.Models
         public bool IsDeleted { get; set; } = false;
 
         public DateTime? DeletedAt { get; set; }
+        public string? RefereshToken { get; set; }
+
+        public DateTime? RefereshTokenExpiryTime { get; set; }
 
         // Audit Columns (Option A - Appended at the end of the table)
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -49,11 +52,14 @@ namespace StudentProj.Models
 
         public string? IpAddress { get; set; }
 
+
+
         // OTP Tracking
         public string? ResetOtp { get; set; }
 
         public DateTime? ResetOtpExpiry { get; set; }
 
         public ICollection<StudentRoles> StudentRoles { get; set; }
+
     }
 }

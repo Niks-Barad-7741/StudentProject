@@ -12,6 +12,7 @@ using Microsoft.OpenApi.Models;
 using StudentProj.Services;
 using StudentProj.Validators;
 using Serilog;
+using StudentProj.Repository_Interface;
 
 // Configure Serilog with timestamped file name (brand new file every time the app starts)
 var logFileName = System.IO.Path.Combine("logs", $"log-{DateTime.Now:yyyyMMdd_HHmmss}.txt");
@@ -48,7 +49,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 Encoding.UTF8.GetBytes(builder.Configuration["JWT-Token"])),
             ValidateIssuer = false,
             ValidateAudience = false,
-            ValidateLifetime = true
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.Zero
         };
     });
 builder.Services.AddAuthentication();
