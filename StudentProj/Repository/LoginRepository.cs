@@ -26,5 +26,20 @@ namespace StudentProj.Repository
                 .Select(sr => sr.Role.RoleName)
                 .ToListAsync();
         }
+
+        public async Task<List<String>> GetStudentPermissionAsync(int studentId) 
+        {
+            return await _dbcontext.StudentRoles
+                .Where(n => n.StudentId ==studentId && !n.IsDeleted && !n.Role.IsDeleted)
+                .SelectMany(n => _dbcontext.RolePrivileges
+                .Where(nb => nb.RoleId == n.RoleId
+                && !nb.IsDeleted
+                && !nb.Privilege.IsDeleted
+                && nb.Menu != null && !nb.Menu.IsDeleted)
+                .Select(n => $"{n.Privilege!.PrivilegeName}:{n.Menu!.MenuName}"))
+                .Distinct()
+                .ToListAsync();
+
+        }
     }
 }

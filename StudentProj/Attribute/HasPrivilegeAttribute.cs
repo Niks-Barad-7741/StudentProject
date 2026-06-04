@@ -1,13 +1,18 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using System;
+using System.Collections.Generic;
 using System.Linq;
-using StudentProj.DTO;
-using StudentProj.Enums;
-using StudentProj.Repository;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.EntityFrameworkCore;
+using StudentProj.Data;
+using StudentProj.DTO;
+using StudentProj.Enums;
+using StudentProj.Repository;
 
 namespace StudentProj.Attributes
 {
@@ -55,14 +60,47 @@ namespace StudentProj.Attributes
                 return;
             }
 
-            // 4. Check permissions locally from claims inside the JWT token
-            string requiredPermission = $"{_permission}:{_menuName}";
-            bool hasAccess = user.Claims.Any(c => 
-                c.Type.Equals("Permission", StringComparison.OrdinalIgnoreCase) && 
-                c.Value.Equals(requiredPermission, StringComparison.OrdinalIgnoreCase)
-            );
+            // 4. Check permissions using in-memory Cache-Aside
+            var cache = context.HttpContext.RequestServices.GetRequiredService<IMemoryCache>();
+            var dbContext = context.HttpContext.RequestServices.GetRequiredService<StudentDbcontext>();
 
-            // 5. Block access if permission claim is not found
+            var roles = user.Claims
+                .Where(c => c.Type == ClaimTypes.Role)
+                .Select(c => c.Value)
+                .ToList();
+
+            string requiredPermission = $"{_permission}:{_menuName}";
+            bool hasAccess = false;
+
+            foreach (var role in roles)
+            {
+                string cacheKey = $"Permissions_Role_{role}";
+
+                if (!cache.TryGetValue(cacheKey, out List<string>? rolePermissions) || rolePermissions == null)
+                {
+                    // Cache Miss: Query SQL Server Database for this role's active permissions
+                    rolePermissions = await dbContext.RolePrivileges
+                        .Where(rp => rp.Role.RoleName == role 
+                                  && !rp.IsDeleted 
+                                  && !rp.Role.IsDeleted 
+                                  && !rp.Privilege.IsDeleted 
+                                  && rp.Menu != null && !rp.Menu.IsDeleted)
+                        .Select(rp => $"{rp.Privilege!.PrivilegeName}:{rp.Menu!.MenuName}")
+                        .Distinct()
+                        .ToListAsync();
+
+                    // Store in cache for 30 seconds
+                    cache.Set(cacheKey, rolePermissions, TimeSpan.FromSeconds(30));
+                }
+
+                if (rolePermissions.Contains(requiredPermission, StringComparer.OrdinalIgnoreCase))
+                {
+                    hasAccess = true;
+                    break;
+                }
+            }
+
+            // 5. Block access if permission is not possessed by any assigned role
             if (!hasAccess)
             {
                 var failResponse = ApiResponse<object>.Create(ResponseStatus.Forbidden);
