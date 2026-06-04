@@ -2,16 +2,19 @@ using Microsoft.EntityFrameworkCore;
 using StudentProj.Data;
 using StudentProj.Models;
 using StudentProj.Repository_Interface;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace StudentProj.Repository
 {
     public class PrivilegeRepository : IPrivilegeRepository
     {
         private readonly StudentDbcontext _dbcontext;
+        private readonly IMemoryCache _cache;
 
-        public PrivilegeRepository(StudentDbcontext dbcontext) 
+        public PrivilegeRepository(StudentDbcontext dbcontext, IMemoryCache cache) 
         {
             _dbcontext = dbcontext;
+            _cache = cache;
         }
 
         public async Task<bool> HasPermissionAsync(int userId, string action, string menuName)
@@ -27,6 +30,15 @@ namespace StudentProj.Repository
                 .Where(rp => _dbcontext.StudentRoles
                     .Any(sr => sr.StudentId == userId && sr.RoleId == rp.RoleId && !sr.IsDeleted))
                 .AnyAsync();
+        }
+
+        private async Task ClearRoleCacheAsync(int roleId)
+        {
+            var role = await _dbcontext.Roles.FindAsync(roleId);
+            if (role != null)
+            {
+                _cache.Remove($"Permissions_Role_{role.RoleName}");
+            }
         }
 
         public async Task<bool> AssignPrivilegeToRoleAsync(int roleId, int permissionId, int menuId)
@@ -47,6 +59,7 @@ namespace StudentProj.Repository
                 existing.DeletedAt = null;
                 _dbcontext.RolePrivileges.Update(existing);
                 await _dbcontext.SaveChangesAsync();
+                await ClearRoleCacheAsync(roleId);
                 return true;
             }
 
@@ -58,6 +71,7 @@ namespace StudentProj.Repository
             };
             await _dbcontext.RolePrivileges.AddAsync(rolePermission);
             await _dbcontext.SaveChangesAsync();
+            await ClearRoleCacheAsync(roleId);
             return true;
         }
 
@@ -162,6 +176,7 @@ namespace StudentProj.Repository
             rolePermission.DeletedAt = DateTime.Now;
             _dbcontext.RolePrivileges.Update(rolePermission);
             await _dbcontext.SaveChangesAsync();
+            await ClearRoleCacheAsync(roleId);
             return true;
         }
     }

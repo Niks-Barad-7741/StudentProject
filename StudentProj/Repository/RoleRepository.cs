@@ -2,16 +2,19 @@ using Microsoft.EntityFrameworkCore;
 using StudentProj.Data;
 using StudentProj.Models;
 using StudentProj.Repository_Interface;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace StudentProj.Repository
 {
     public class RoleRepository : IRoleRepository
     {
         private readonly StudentDbcontext _dbcontext;
+        private readonly IMemoryCache _cache;
 
-        public RoleRepository(StudentDbcontext dbcontext)
+        public RoleRepository(StudentDbcontext dbcontext, IMemoryCache cache)
         {
             _dbcontext = dbcontext;
+            _cache = cache;
         }
 
         // get all roles
@@ -73,10 +76,9 @@ namespace StudentProj.Repository
             role.DeletedAt = DateTime.Now;
             _dbcontext.Roles.Update(role);
             await _dbcontext.SaveChangesAsync();
+
+            _cache.Remove($"Permissions_Role_{role.RoleName}");
             return true;
-            //_dbcontext.Roles.Remove(role);
-            //await _dbcontext.SaveChangesAsync();
-            //return true;
         }
 
         // check duplicate - case insensitive
@@ -90,8 +92,16 @@ namespace StudentProj.Repository
 
         public async Task<bool> UpdateRoleAsync(int id,Roles role) 
         {
+            var oldRole = await _dbcontext.Roles.AsNoTracking().FirstOrDefaultAsync(r => r.Id == id);
+            if (oldRole != null)
+            {
+                _cache.Remove($"Permissions_Role_{oldRole.RoleName}");
+            }
+
             _dbcontext.Roles.Update(role);
             await _dbcontext.SaveChangesAsync();
+
+            _cache.Remove($"Permissions_Role_{role.RoleName}");
             return role.Id == id;
         }
     }

@@ -39,23 +39,6 @@ namespace StudentProj.Services
                 claims.Add(new Claim(ClaimTypes.Role, role));
             }
 
-            // Fetch active menu-privilege permissions for the student's active roles
-            var permissions = _dbcontext.StudentRoles
-                .Where(sr => sr.StudentId == student.Id && !sr.IsDeleted && !sr.Role.IsDeleted)
-                .SelectMany(sr => _dbcontext.RolePrivileges
-                    .Where(rp => rp.RoleId == sr.RoleId 
-                              && !rp.IsDeleted 
-                              && !rp.Privilege.IsDeleted 
-                              && rp.Menu != null && !rp.Menu.IsDeleted)
-                    .Select(rp => $"{rp.Privilege.PrivilegeName}:{rp.Menu.MenuName}"))
-                .Distinct()
-                .ToList();
-
-            foreach (var permission in permissions)
-            {
-                claims.Add(new Claim("Permission", permission));
-            }
-
             var token = new JwtSecurityToken(
                 claims: claims,
                 expires: DateTime.Now.AddMinutes(2),

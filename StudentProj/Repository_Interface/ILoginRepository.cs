@@ -6,6 +6,7 @@ namespace StudentProj.Repository_Interface
     {
         Task<Student> GetStudentbyemailasync(string email);
         Task<List<string>> GetStudentRolesAsync(int studentId);
+        Task<List<string>> GetStudentPermissionAsync(int studentId);
 
     }
 }

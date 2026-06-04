@@ -80,6 +80,7 @@ namespace StudentProj.Controllers
             var roles = await _auth.GetStudentRolesAsync(student.Id);
             var token = _JWT_service.GenerateToken(student, roles);
             var refreshToken = _JWT_service.GenerateRefreshToken();
+            var permissions = await _login.GetStudentPermissionAsync(student.Id);
 
             student.RefereshToken = refreshToken;
             student.RefereshTokenExpiryTime = DateTimeHelper.GetIndianStandardTime().AddDays(7);
@@ -91,7 +92,8 @@ namespace StudentProj.Controllers
             var authData = new LoginResponseDTO
             {
                 Token = token,
-                RefreshToken = refreshToken
+                RefreshToken = refreshToken,
+                Permission = permissions
             };
             var response = ApiResponse<LoginResponseDTO>.Create(ResponseStatus.UserRegisterSuccessfully, authData);
             return StatusCode(response.StatusCodes, response);
@@ -123,6 +125,7 @@ namespace StudentProj.Controllers
             var roles = await _login.GetStudentRolesAsync(student.Id);
             var token = _JWT_service.GenerateToken(student, roles);
             var refreshToken = _JWT_service.GenerateRefreshToken();
+            var permission = await _login.GetStudentPermissionAsync(student.Id);
 
             student.RefereshToken = refreshToken;
             student.RefereshTokenExpiryTime = DateTimeHelper.GetIndianStandardTime().AddDays(7);
@@ -133,11 +136,15 @@ namespace StudentProj.Controllers
             var authData = new LoginResponseDTO
             {
                 Token = token,
-                RefreshToken = refreshToken
+                RefreshToken = refreshToken,
+                Permission = permission
             };
             var response = ApiResponse<LoginResponseDTO>.Create(ResponseStatus.UserLoginSuccessfully, authData);
             return StatusCode(response.StatusCodes, response);
         }
+
+
+
         [HttpPost("forgot-password")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -231,6 +238,8 @@ namespace StudentProj.Controllers
             var response = ApiResponse<object>.Create(ResponseStatus.UserUpdatedSuccessfully, "Password reset successfully. You can now login.");
             return StatusCode(response.StatusCodes, response);
         }
+
+
         [HttpPost("refresh")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]

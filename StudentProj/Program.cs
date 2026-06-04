@@ -18,13 +18,24 @@ using StudentProj.Repository_Interface;
 var logFileName = System.IO.Path.Combine("logs", $"log-{DateTime.Now:yyyyMMdd_HHmmss}.txt");
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Information()
-    .MinimumLevel.Override("Microsoft", Serilog.Events.LogEventLevel.Warning)
+    .MinimumLevel.Override("Microsoft", Serilog.Events.LogEventLevel.Information)
+    .MinimumLevel.Override("Microsoft.AspNetCore", Serilog.Events.LogEventLevel.Information)
     .Enrich.FromLogContext()
-    .WriteTo.File(logFileName, outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}")
+    // Sub-logger A: Write EVERYTHING to the Console (terminal)
+    .WriteTo.Logger(lc => lc
+        .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}"))
+    // Sub-logger B: Filter and write ONLY custom audit logs to the File
+    .WriteTo.Logger(lc => lc
+        .Filter.ByIncludingOnly(logEvent => 
+            logEvent.MessageTemplate.Text.StartsWith("Name:") || 
+            logEvent.Properties.ContainsKey("Name"))
+        .WriteTo.File(logFileName, outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}"))
     .CreateLogger();
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseSerilog();
+
+builder.Services.AddMemoryCache();
 
 // Add validator services to the container.
 builder.Services.AddFluentValidationAutoValidation();
@@ -110,6 +121,7 @@ builder.Services.AddScoped<ILoggingService, LoggingService>();
 var app = builder.Build();
 
 app.UseMiddleware<StudentProj.Middleware.ExceptionHandlingMiddleware>();
+app.UseSerilogRequestLogging();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
