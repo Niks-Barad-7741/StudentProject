@@ -17,6 +17,7 @@ namespace StudentProj.Controllers
 {
     [Route("api/students")]
     [ApiController]
+    [Authorize]
     public class StudentController : ControllerBase
     {
         private readonly IStudent _student;
@@ -28,7 +29,6 @@ namespace StudentProj.Controllers
         }
 
         [HttpGet]
-        [HasPermission("Read", "Students")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<ActionResult> GetAll() 
         {
@@ -37,7 +37,6 @@ namespace StudentProj.Controllers
             return StatusCode(response.StatusCodes, response);
         }
 
-        [HasPermission("Read", "Students")]
         [HttpGet("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -60,7 +59,6 @@ namespace StudentProj.Controllers
             return StatusCode(response.StatusCodes, response);
         }
 
-        [HasPermission("Create", "Students")]
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -117,7 +115,6 @@ namespace StudentProj.Controllers
             return CreatedAtAction(nameof(GetbyId), new { id = student.Id }, response);
         }
 
-        [HasPermission("Read", "Students")]
         [HttpGet("by-name/{name}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -140,7 +137,6 @@ namespace StudentProj.Controllers
             return StatusCode(response.StatusCodes, response);
         }
 
-        [HasPermission("Update", "Students")]
         [HttpPut("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -183,7 +179,6 @@ namespace StudentProj.Controllers
             return StatusCode(response.StatusCodes, response);
         }
 
-        [HasPermission("Update", "Students")]
         [HttpPatch("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]  
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -238,7 +233,6 @@ namespace StudentProj.Controllers
             return StatusCode(response.StatusCodes, response);
         }
 
-        [HasPermission("Delete", "Students")]
         [HttpDelete("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -270,7 +264,6 @@ namespace StudentProj.Controllers
             return StatusCode(response.StatusCodes, response);
         }
 
-        [HasPermission("Create", "Students")]
         [HttpPut("upsert/{id?}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]

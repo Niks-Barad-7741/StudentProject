@@ -93,7 +93,7 @@ namespace StudentProj.Controllers
             {
                 Token = token,
                 RefreshToken = refreshToken,
-                Permission = permissions
+                Permissions = permissions
             };
             var response = ApiResponse<LoginResponseDTO>.Create(ResponseStatus.UserRegisterSuccessfully, authData);
             return StatusCode(response.StatusCodes, response);
@@ -137,7 +137,7 @@ namespace StudentProj.Controllers
             {
                 Token = token,
                 RefreshToken = refreshToken,
-                Permission = permission
+                Permissions = permission
             };
             var response = ApiResponse<LoginResponseDTO>.Create(ResponseStatus.UserLoginSuccessfully, authData);
             return StatusCode(response.StatusCodes, response);

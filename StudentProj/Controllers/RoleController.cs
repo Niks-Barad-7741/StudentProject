@@ -1,4 +1,5 @@
 using FluentValidation;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using StudentProj.Attributes;
@@ -18,7 +19,7 @@ namespace StudentProj.Controllers
 {
     [Route("api/roles")]
     [ApiController]
-    [HasPermission("Read", "Roles")]
+    [Authorize]
     public class RoleController : ControllerBase
     {
         private readonly IRoleRepository _role;
@@ -38,9 +39,7 @@ namespace StudentProj.Controllers
             _validator = validator;
         }
 
-        // GET all roles
         [HttpGet]
-        [HasPermission("Read", "Roles")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<ActionResult> GetAllRoles()
         {

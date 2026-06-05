@@ -2,6 +2,10 @@ using Microsoft.EntityFrameworkCore;
 using StudentProj.Data;
 using StudentProj.Models;
 using StudentProj.Repository_Interface;
+using StudentProj.DTO;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace StudentProj.Repository
 {
@@ -27,19 +31,24 @@ namespace StudentProj.Repository
                 .ToListAsync();
         }
 
-        public async Task<List<String>> GetStudentPermissionAsync(int studentId) 
+        public async Task<List<UserMenuPermissionDTO>> GetStudentPermissionAsync(int studentId) 
         {
             return await _dbcontext.StudentRoles
-                .Where(n => n.StudentId ==studentId && !n.IsDeleted && !n.Role.IsDeleted)
+                .Where(n => n.StudentId == studentId && !n.IsDeleted && !n.Role.IsDeleted)
                 .SelectMany(n => _dbcontext.RolePrivileges
-                .Where(nb => nb.RoleId == n.RoleId
-                && !nb.IsDeleted
-                && !nb.Privilege.IsDeleted
-                && nb.Menu != null && !nb.Menu.IsDeleted)
-                .Select(n => $"{n.Privilege!.PrivilegeName}:{n.Menu!.MenuName}"))
+                    .Where(nb => nb.RoleId == n.RoleId
+                        && !nb.IsDeleted
+                        && !nb.Privilege.IsDeleted
+                        && nb.Menu != null && !nb.Menu.IsDeleted)
+                    .Select(nb => new UserMenuPermissionDTO
+                    {
+                        MenuId = nb.Menu!.Id,
+                        MenuName = nb.Menu.MenuName,
+                        MenuRoute = nb.Menu.MenuRoute,
+                        Permission = nb.Privilege!.PrivilegeName
+                    }))
                 .Distinct()
                 .ToListAsync();
-
         }
     }
 }

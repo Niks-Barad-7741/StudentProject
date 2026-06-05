@@ -15,6 +15,7 @@ namespace StudentProj.Data
         public DbSet<Privileges> Privileges { get; set; }
         public DbSet<Menu> Menus { get; set; }
         public DbSet<Logs> Logs { get; set; }
+        public DbSet<RoutePermissions> RoutePermissions { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder) 
         {

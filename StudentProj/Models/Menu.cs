@@ -13,6 +13,10 @@ namespace StudentProj.Models
         [StringLength(50)]
         public string MenuName { get; set; }
 
+        [Required]
+        [StringLength(100)]
+        public string MenuRoute { get; set; } = string.Empty;
+
         public bool IsDeleted { get; set; } = false;
 
         public DateTime? DeletedAt { get; set; }

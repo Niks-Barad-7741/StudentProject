@@ -45,6 +45,7 @@ builder.Services.AddScoped<IValidator<RegisterDTO>, RegisterValidator>();
 builder.Services.AddScoped<IValidator<AssignRoleDTO>, AssignRoleValidator>();
 builder.Services.AddScoped<IValidator<RoleDTO>, RoleValidator>();
 builder.Services.AddScoped<IValidator<PrivilegeDTO>, PrivilegeValidator>();
+builder.Services.AddScoped<IValidator<RoutePermissionDTO>, RoutePermissionValidator>();
 
 
 builder.Services.AddControllers().AddNewtonsoftJson();
@@ -115,6 +116,7 @@ builder.Services.AddScoped<ILoginRepository, LoginRepository>();
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 builder.Services.AddScoped<IPrivilegeRepository, PrivilegeRepository>();
 builder.Services.AddScoped<IMenuRepository, MenuRepository>();
+builder.Services.AddScoped<IRoutePermissionRepository, RoutePermissionRepository>();
 builder.Services.AddScoped<JwtService>();
 builder.Services.AddScoped<ILoggingService, LoggingService>();
 
@@ -133,6 +135,8 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseAuthentication();
+
+app.UseMiddleware<StudentProj.Middleware.DynamicRbacMiddleware>();
 
 app.UseAuthorization();
 

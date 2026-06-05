@@ -14,7 +14,7 @@ namespace StudentProj.Controllers
 {
     [Route("api/privileges")]
     [ApiController]
-    [HasPermission("Read", "Permissions")]
+    [Authorize]
     public class PrivilegesController : ControllerBase
     {
         private readonly IPrivilegeRepository _privilegeRepo;
@@ -49,7 +49,6 @@ namespace StudentProj.Controllers
 
         // 1. Create a Privilege
         [HttpPost]
-        [HasPermission("Create", "Permissions")]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult> CreatePermission([FromBody] PrivilegeDTO dto)
@@ -83,7 +82,6 @@ namespace StudentProj.Controllers
 
         // 2. Assign Privilege to Role
         [HttpPost("assign")]
-        [HasPermission("Update", "Permissions")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -146,7 +144,6 @@ namespace StudentProj.Controllers
         }
 
         [HttpPut("{id}")]
-        [HasPermission("Update", "Permissions")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -190,7 +187,6 @@ namespace StudentProj.Controllers
         }
 
         [HttpDelete("{id}")]
-        [HasPermission("Delete", "Permissions")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult> DeletePrivilege(int id)
@@ -213,7 +209,6 @@ namespace StudentProj.Controllers
         }
 
         [HttpDelete("revoke")]
-        [HasPermission("Update", "Permissions")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult> RemovePrivilegeFromRole([FromBody] AssignPrivilegeDTO dto)

@@ -14,7 +14,7 @@ namespace StudentProj.Controllers
 {
     [Route("api/menus")]
     [ApiController]
-    
+    [Authorize]
     public class MenuController : ControllerBase
     {
         private readonly IMenuRepository _menuRepo;
@@ -25,7 +25,6 @@ namespace StudentProj.Controllers
         }
 
         [HttpGet]
-        [HasPermission("Read", "Menus")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<ActionResult> GetAllMenus()
         {
@@ -33,7 +32,8 @@ namespace StudentProj.Controllers
             var response = menus.Select(m => new
             {
                 Id = m.Id,
-                MenuName = m.MenuName
+                MenuName = m.MenuName,
+                MenuRoute = m.MenuRoute
             });
 
             var success = ApiResponse<object>.Create(ResponseStatus.UserRetriveSuccessfully, "Menus retrieved successfully.", response);
@@ -41,7 +41,6 @@ namespace StudentProj.Controllers
         }
 
         [HttpPost]
-        [HasPermission("Create", "Menus")]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult> CreateMenu([FromBody] MenuDTO dto)
@@ -49,6 +48,11 @@ namespace StudentProj.Controllers
             if (string.IsNullOrWhiteSpace(dto.MenuName))
             {
                 var error = ApiResponse<object>.Create(ResponseStatus.BadRequest, "Menu name is required.");
+                return StatusCode(error.StatusCodes, error);
+            }
+            if (string.IsNullOrWhiteSpace(dto.MenuRoute))
+            {
+                var error = ApiResponse<object>.Create(ResponseStatus.BadRequest, "Menu route is required.");
                 return StatusCode(error.StatusCodes, error);
             }
 
@@ -59,7 +63,7 @@ namespace StudentProj.Controllers
                 return StatusCode(error.StatusCodes, error);
             }
 
-            var menu = new Menu { MenuName = dto.MenuName };
+            var menu = new Menu { MenuName = dto.MenuName, MenuRoute = dto.MenuRoute };
             var created = await _menuRepo.CreateMenuAsync(menu);
 
             var success = ApiResponse<Menu>.Create(ResponseStatus.RoleCreatedSuccessfully, "Menu created successfully.", created);
@@ -68,7 +72,6 @@ namespace StudentProj.Controllers
 
 
         [HttpPut("{id}")]
-        [HasPermission("Update", "Menus")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -84,6 +87,11 @@ namespace StudentProj.Controllers
                 var error = ApiResponse<object>.Create(ResponseStatus.BadRequest, "Menu Name is Required");
                 return StatusCode(error.StatusCodes, error);
             }
+            if (string.IsNullOrWhiteSpace(dto.MenuRoute))
+            {
+                var error = ApiResponse<object>.Create(ResponseStatus.BadRequest, "Menu Route is Required");
+                return StatusCode(error.StatusCodes, error);
+            }
             var existingmenu = await _menuRepo.GetMenuByIdAsync(id);
             if (existingmenu == null )
             {
@@ -97,6 +105,7 @@ namespace StudentProj.Controllers
                 return StatusCode(error.StatusCodes, error);
             }
             existingmenu.MenuName = dto.MenuName;
+            existingmenu.MenuRoute = dto.MenuRoute;
             await _menuRepo.UpdateMenuAsync(id, existingmenu);
 
             var success = ApiResponse<object>.Create(ResponseStatus.UserUpdatedSuccessfully, "Menu Updated Succesfully");
@@ -104,7 +113,6 @@ namespace StudentProj.Controllers
         }
 
         [HttpDelete("{id}")]
-        [HasPermission("Delete", "Menus")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult> DeleteMenu(int id)
@@ -148,6 +156,7 @@ namespace StudentProj.Controllers
                 {
                     Id = n.Id,
                     MenuName = n.MenuName,
+                    MenuRoute = n.MenuRoute
                 });
 
             var success = ApiResponse<object>.Create(ResponseStatus.UserRetriveSuccessfully, "Your Menus Retrive Succesfully.", response);
