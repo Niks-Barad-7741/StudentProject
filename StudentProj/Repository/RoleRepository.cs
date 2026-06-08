@@ -104,5 +104,15 @@ namespace StudentProj.Repository
             _cache.Remove($"Permissions_Role_{role.RoleName}");
             return role.Id == id;
         }
+
+        //get role 
+        public async Task<List<string>> GetUserRolesAsync(int StudentId) 
+        {
+            var roles = await (from n in _dbcontext.StudentRoles
+                               join b in _dbcontext.Roles on n.RoleId equals b.Id
+                               where n.StudentId == StudentId && !n.IsDeleted && !b.IsDeleted
+                               select b.RoleName).ToListAsync();
+            return roles;
+        }
     }
 }

@@ -23,5 +23,8 @@ namespace StudentProj.Repository_Interface
         Task<bool> RoleExistsAsync(string roleName);
 
         Task<bool> UpdateRoleAsync(int id, Roles role);
+
+        //Get user role 
+        Task<List<string>> GetUserRolesAsync(int StudentId);
     }
 }

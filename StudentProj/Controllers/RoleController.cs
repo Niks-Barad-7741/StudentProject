@@ -324,5 +324,23 @@ namespace StudentProj.Controllers
             var success = ApiResponse<object>.Create(ResponseStatus.RoleRevokedSuccessfully, successMessage);
             return StatusCode(success.StatusCodes, success);
         }
+
+        [Authorize]
+        [HttpGet("My-Roles")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<ActionResult> GetMyRoles()
+        {
+            var userIdClaim = HttpContext.User.FindFirst("Id");
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId)) 
+            {
+                var failResponse = ApiResponse<object>.Create(ResponseStatus.Unauthorized);
+                return StatusCode(failResponse.StatusCodes, failResponse);
+            }
+
+            var roles = await _role.GetUserRolesAsync(userId);
+            //var roles = await _auth.GetStudentRolesAsync(userId);
+            var success = ApiResponse<List<string>>.Create(ResponseStatus.RoleRetriveSuccessfully, "Your roles retrieved successfully.", roles);
+            return StatusCode(success.StatusCodes, success);
+        }
     }
 }
