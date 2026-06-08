@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
+using AutoMapper;
 
 namespace StudentProj.Controllers
 {
@@ -18,10 +19,12 @@ namespace StudentProj.Controllers
     public class MenuController : ControllerBase
     {
         private readonly IMenuRepository _menuRepo;
+        private readonly IMapper _mapper;
 
-        public MenuController(IMenuRepository menuRepo)
+        public MenuController(IMenuRepository menuRepo, IMapper mapper)
         {
             _menuRepo = menuRepo;
+            _mapper = mapper;
         }
 
         [HttpGet]
@@ -63,7 +66,7 @@ namespace StudentProj.Controllers
                 return StatusCode(error.StatusCodes, error);
             }
 
-            var menu = new Menu { MenuName = dto.MenuName, MenuRoute = dto.MenuRoute };
+            var menu = _mapper.Map<Menu>(dto);
             var created = await _menuRepo.CreateMenuAsync(menu);
 
             var success = ApiResponse<Menu>.Create(ResponseStatus.RoleCreatedSuccessfully, "Menu created successfully.", created);
@@ -104,8 +107,7 @@ namespace StudentProj.Controllers
                 var error = ApiResponse<object>.Create(ResponseStatus.BadRequest, $"Menu `{dto.MenuName}` already exists");
                 return StatusCode(error.StatusCodes, error);
             }
-            existingmenu.MenuName = dto.MenuName;
-            existingmenu.MenuRoute = dto.MenuRoute;
+            _mapper.Map(dto, existingmenu);
             await _menuRepo.UpdateMenuAsync(id, existingmenu);
 
             var success = ApiResponse<object>.Create(ResponseStatus.UserUpdatedSuccessfully, "Menu Updated Succesfully");

@@ -12,6 +12,7 @@ using System.Security.Claims;
 using StudentProj.Common;
 using System.Threading.Tasks;
 using StudentProj.Repository_Interface;
+using AutoMapper;
 
 namespace StudentProj.Controllers
 {
@@ -22,10 +23,12 @@ namespace StudentProj.Controllers
     {
         private readonly IStudent _student;
         private readonly IRegisterRepository _registerepository;
-        public StudentController(IStudent student, IRegisterRepository registerRepository) 
+        private readonly IMapper _mapper;
+        public StudentController(IStudent student, IRegisterRepository registerRepository, IMapper mapper) 
         {
             _student = student;
             _registerepository = registerRepository;
+            _mapper = mapper;
         }
 
         [HttpGet]
@@ -48,13 +51,7 @@ namespace StudentProj.Controllers
                 var error = ApiResponse<object>.Create(ResponseStatus.UserNotFound, $"Student with id {id} not found.");
                 return StatusCode(error.StatusCodes, error);
             }
-            var studentDTO = new StudentDTO
-            {
-                Name = student.Name,
-                Email = student.Email,
-                Address = student.Address,
-                Phone = student.Phone
-            };
+            var studentDTO = _mapper.Map<StudentDTO>(student);
             var response = ApiResponse<StudentDTO>.Create(ResponseStatus.UserRetriveSuccessfully, studentDTO);
             return StatusCode(response.StatusCodes, response);
         }
@@ -81,17 +78,11 @@ namespace StudentProj.Controllers
                 ? HttpContext.User.FindFirst(ClaimTypes.Role)?.Value ?? "Anonymous" 
                 : "Anonymous";
 
-            var student = new Student
-            {
-                Name = dto.Name,
-                Email = dto.Email,
-                Address = dto.Address,
-                Phone = dto.Phone,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
-                CreatedAt = DateTimeHelper.GetIndianStandardTime(),
-                CreatedBy = creatorRole,
-                IpAddress = IpHelper.GetClientIpAddress(HttpContext)
-            };
+            var student = _mapper.Map<Student>(dto);
+            student.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
+            student.CreatedAt = DateTimeHelper.GetIndianStandardTime();
+            student.CreatedBy = creatorRole;
+            student.IpAddress = IpHelper.GetClientIpAddress(HttpContext);
 
             await _student.Createstudentasync(student);
             if (student == null) 
@@ -104,13 +95,7 @@ namespace StudentProj.Controllers
             {  
                 await _registerepository.AssignRoleAsync(student.Id, studentrole.Id);
             }
-            var studentDTO = new StudentDTO
-            {
-                Name = student.Name,
-                Email = student.Email,
-                Address = student.Address,
-                Phone = student.Phone
-            };
+            var studentDTO = _mapper.Map<StudentDTO>(student);
             var response = ApiResponse<StudentDTO>.Create(ResponseStatus.UserAddedSuccessfully, studentDTO);
             return CreatedAtAction(nameof(GetbyId), new { id = student.Id }, response);
         }
@@ -126,13 +111,7 @@ namespace StudentProj.Controllers
                 var error = ApiResponse<object>.Create(ResponseStatus.UserNotFound, $"Student with name {name} not found.");
                 return StatusCode(error.StatusCodes, error);
             }
-            var studentDTO = new StudentDTO
-            {
-                Name = student.Name,
-                Email = student.Email,
-                Address = student.Address,
-                Phone = student.Phone
-            };
+            var studentDTO = _mapper.Map<StudentDTO>(student);
             var response = ApiResponse<StudentDTO>.Create(ResponseStatus.UserRetriveSuccessfully, studentDTO);
             return StatusCode(response.StatusCodes, response);
         }
@@ -162,10 +141,7 @@ namespace StudentProj.Controllers
                 return StatusCode(errorResponse.StatusCodes, errorResponse);
             }
 
-            existingstudent.Name = dto.Name;
-            existingstudent.Email = dto.Email;
-            existingstudent.Address = dto.Address;
-            existingstudent.Phone = dto.Phone;
+            _mapper.Map(dto, existingstudent);
             
             var actorRole = HttpContext.User.Identity?.IsAuthenticated == true 
                 ? HttpContext.User.FindFirst(ClaimTypes.Role)?.Value ?? "Anonymous" 
@@ -196,13 +172,7 @@ namespace StudentProj.Controllers
                 var error = ApiResponse<object>.Create(ResponseStatus.UserNotFound, $"Student with id {id} not found.");
                 return StatusCode(error.StatusCodes, error);
             }
-            var studentdto = new StudentDTO
-            {
-                Name = existingstudent.Name,
-                Email = existingstudent.Email,
-                Address = existingstudent.Address,
-                Phone = existingstudent.Phone
-            };
+            var studentdto = _mapper.Map<StudentDTO>(existingstudent);
             patchDocument.ApplyTo(studentdto, ModelState);
             if (!ModelState.IsValid) 
             {
@@ -216,10 +186,7 @@ namespace StudentProj.Controllers
                 return StatusCode(errorResponse.StatusCodes, errorResponse);
             }
 
-            existingstudent.Name = studentdto.Name;
-            existingstudent.Email = studentdto.Email;
-            existingstudent.Address = studentdto.Address;
-            existingstudent.Phone = studentdto.Phone;
+            _mapper.Map(studentdto, existingstudent);
             
             var actorRole = HttpContext.User.Identity?.IsAuthenticated == true 
                 ? HttpContext.User.FindFirst(ClaimTypes.Role)?.Value ?? "Anonymous" 
@@ -293,20 +260,14 @@ namespace StudentProj.Controllers
                 ? HttpContext.User.FindFirst(ClaimTypes.Role)?.Value ?? "Anonymous" 
                 : "Anonymous";
 
-            var student = new Student
-            {
-                Id = studentId,
-                Name = dto.Name,
-                Email = dto.Email,
-                Address = dto.Address,
-                Phone = dto.Phone,
-                PasswordHash = studentId <= 0 ? BCrypt.Net.BCrypt.HashPassword(dto.Password) : null!, // Only hash for new inserts
-                CreatedAt = DateTimeHelper.GetIndianStandardTime(),
-                CreatedBy = actorRole,
-                UpdatedAt = studentId > 0 ? DateTimeHelper.GetIndianStandardTime() : null,
-                UpdatedBy = studentId > 0 ? actorRole : null,
-                IpAddress = IpHelper.GetClientIpAddress(HttpContext)
-            };
+            var student = _mapper.Map<Student>(dto);
+            student.Id = studentId;
+            student.PasswordHash = studentId <= 0 ? BCrypt.Net.BCrypt.HashPassword(dto.Password) : null!; // Only hash for new inserts
+            student.CreatedAt = DateTimeHelper.GetIndianStandardTime();
+            student.CreatedBy = actorRole;
+            student.UpdatedAt = studentId > 0 ? DateTimeHelper.GetIndianStandardTime() : null;
+            student.UpdatedBy = studentId > 0 ? actorRole : null;
+            student.IpAddress = IpHelper.GetClientIpAddress(HttpContext);
             var resultid = await _student.UpsertStudentAsync(student);
             if (resultid == 0)
             {

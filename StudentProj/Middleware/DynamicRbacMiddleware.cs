@@ -8,7 +8,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
+// using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Caching.Distributed;
+using System.Text.Json;
 using StudentProj.Data;
 using StudentProj.Models;
 
@@ -17,10 +19,11 @@ namespace StudentProj.Middleware
     public class DynamicRbacMiddleware
     {
         private readonly RequestDelegate _next;
-        private readonly IMemoryCache _cache;
+        // private readonly IMemoryCache _cache;
+        private readonly IDistributedCache _cache;
         private const string CacheKeyPrefix = "UserPermissions_";
 
-        public DynamicRbacMiddleware(RequestDelegate next, IMemoryCache cache)
+        public DynamicRbacMiddleware(RequestDelegate next, IDistributedCache cache)
         {
             _next = next;
             _cache = cache;
@@ -162,6 +165,8 @@ namespace StudentProj.Middleware
         private async Task<List<RoutePermissions>> GetCachedRoutePermissionsAsync(StudentDbcontext dbContext)
         {
             const string RoutePermissionsCacheKey = "RoutePermissions_All";
+            
+            /* -- Older Memory Cache Implementation --
             if (!_cache.TryGetValue(RoutePermissionsCacheKey, out List<RoutePermissions>? list) || list == null)
             {
                 list = await dbContext.RoutePermissions.ToListAsync();
@@ -170,19 +175,52 @@ namespace StudentProj.Middleware
                 _cache.Set(RoutePermissionsCacheKey, list, cacheOptions);
             }
             return list;
+            ------------------------------------------- */
+
+            // New Redis Caching Implementation
+            var cachedJson = await _cache.GetStringAsync(RoutePermissionsCacheKey);
+            if (!string.IsNullOrEmpty(cachedJson))
+            {
+                try
+                {
+                    var list = JsonSerializer.Deserialize<List<RoutePermissions>>(cachedJson);
+                    if (list != null) return list;
+                }
+                catch
+                {
+                    // Fallback to database on deserialization error
+                }
+            }
+
+            var dbList = await dbContext.RoutePermissions.ToListAsync();
+            var cacheOptions = new DistributedCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(30)
+            };
+            await _cache.SetStringAsync(RoutePermissionsCacheKey, JsonSerializer.Serialize(dbList), cacheOptions);
+            return dbList;
         }
 
         private async Task<bool> CheckUserPermissionAsync(StudentDbcontext dbContext, int studentId, string menuName, string privilegeName)
         {
             string cacheKey = $"{CacheKeyPrefix}{studentId}_{menuName}_{privilegeName}";
 
+            /* -- Older Memory Cache Implementation --
             if (_cache.TryGetValue(cacheKey, out bool hasPermission))
             {
                 return hasPermission;
             }
+            ------------------------------------------- */
+
+            // New Redis Caching Implementation: Get from Redis
+            var cachedVal = await _cache.GetStringAsync(cacheKey);
+            if (cachedVal != null)
+            {
+                return bool.Parse(cachedVal);
+            }
 
             // DB check
-            hasPermission = await dbContext.StudentRoles
+            bool hasPermission = await dbContext.StudentRoles
                 .Where(sr => sr.StudentId == studentId && !sr.IsDeleted && !sr.Role.IsDeleted)
                 .SelectMany(sr => dbContext.RolePrivileges
                     .Where(rp => rp.RoleId == sr.RoleId 
@@ -192,9 +230,18 @@ namespace StudentProj.Middleware
                     .Select(rp => new { MenuName = rp.Menu!.MenuName, PrivilegeName = rp.Privilege!.PrivilegeName }))
                 .AnyAsync(p => p.MenuName.ToLower() == menuName.ToLower() && p.PrivilegeName.ToLower() == privilegeName.ToLower());
 
+            /* -- Older Memory Cache Implementation --
             var cacheOptions = new MemoryCacheEntryOptions()
                 .SetAbsoluteExpiration(TimeSpan.FromSeconds(30));
             _cache.Set(cacheKey, hasPermission, cacheOptions);
+            ------------------------------------------- */
+
+            // New Redis Caching Implementation: Save to Redis
+            var cacheOptions = new DistributedCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(30)
+            };
+            await _cache.SetStringAsync(cacheKey, hasPermission.ToString(), cacheOptions);
 
             return hasPermission;
         }

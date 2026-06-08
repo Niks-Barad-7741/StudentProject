@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
+// using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Caching.Distributed;
 using StudentProj.Data;
 using StudentProj.Models;
 using StudentProj.Repository_Interface;
@@ -13,18 +14,20 @@ namespace StudentProj.Repository
     public class RoutePermissionRepository : IRoutePermissionRepository
     {
         private readonly StudentDbcontext _dbcontext;
-        private readonly IMemoryCache _cache;
+        // private readonly IMemoryCache _cache;
+        private readonly IDistributedCache _cache;
         private const string RoutePermissionsCacheKey = "RoutePermissions_All";
 
-        public RoutePermissionRepository(StudentDbcontext dbcontext, IMemoryCache cache)
+        public RoutePermissionRepository(StudentDbcontext dbcontext, IDistributedCache cache)
         {
             _dbcontext = dbcontext;
             _cache = cache;
         }
 
-        private void EvictCache()
+        private async Task EvictCacheAsync()
         {
-            _cache.Remove(RoutePermissionsCacheKey);
+            // _cache.Remove(RoutePermissionsCacheKey);
+            await _cache.RemoveAsync(RoutePermissionsCacheKey);
         }
 
         public async Task<List<RoutePermissions>> GetAllRoutePermissionsAsync()
@@ -41,7 +44,8 @@ namespace StudentProj.Repository
         {
             await _dbcontext.RoutePermissions.AddAsync(routePermission);
             await _dbcontext.SaveChangesAsync();
-            EvictCache();
+            // EvictCache();
+            await EvictCacheAsync();
             return routePermission;
         }
 
@@ -51,7 +55,8 @@ namespace StudentProj.Repository
             var updated = await _dbcontext.SaveChangesAsync();
             if (updated > 0)
             {
-                EvictCache();
+                // EvictCache();
+                await EvictCacheAsync();
                 return true;
             }
             return false;
@@ -66,7 +71,8 @@ namespace StudentProj.Repository
             var deleted = await _dbcontext.SaveChangesAsync();
             if (deleted > 0)
             {
-                EvictCache();
+                // EvictCache();
+                await EvictCacheAsync();
                 return true;
             }
             return false;

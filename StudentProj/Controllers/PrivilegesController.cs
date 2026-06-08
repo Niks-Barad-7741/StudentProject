@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using StudentProj.Repository_Interface;
+using AutoMapper;
 
 namespace StudentProj.Controllers
 {
@@ -20,15 +21,18 @@ namespace StudentProj.Controllers
         private readonly IPrivilegeRepository _privilegeRepo;
         private readonly IRoleRepository _roleRepo;
         private readonly IValidator<PrivilegeDTO> _validator;
+        private readonly IMapper _mapper;
 
         public PrivilegesController(
             IPrivilegeRepository privilegeRepo,
             IRoleRepository roleRepo,
-            IValidator<PrivilegeDTO> validator)
+            IValidator<PrivilegeDTO> validator,
+            IMapper mapper)
         {
             _privilegeRepo = privilegeRepo;
             _roleRepo = roleRepo;
             _validator = validator;
+            _mapper = mapper;
         }
 
         // GET all active Privilege
@@ -38,10 +42,7 @@ namespace StudentProj.Controllers
         {
             var privileges = await _privilegeRepo.GetAllPrivilegeAsync();
 
-            var response = privileges.Select(p => new PrivilegeDTO
-            {
-               PrivilegeName = p.PrivilegeName
-            });
+            var response = _mapper.Map<IEnumerable<PrivilegeDTO>>(privileges);
 
             var success = ApiResponse<IEnumerable<PrivilegeDTO>>.Create(ResponseStatus.PrivilegeRetriveSuccessfully, response);
             return StatusCode(success.StatusCodes, success);
@@ -70,10 +71,8 @@ namespace StudentProj.Controllers
                 return StatusCode(error.StatusCodes, error);
             }
 
-            var permission = new Privileges
-            {
-                PrivilegeName = dto.PrivilegeName.ToLower()
-            };
+            var permission = _mapper.Map<Privileges>(dto);
+            permission.PrivilegeName = dto.PrivilegeName.ToLower();
 
             var created = await _privilegeRepo.CreatePrivilegeAsync(permission);
             var success = ApiResponse<Privileges>.Create(ResponseStatus.RoleCreatedSuccessfully, created);
@@ -179,6 +178,7 @@ namespace StudentProj.Controllers
                 return StatusCode(error.StatusCodes, error);
             }
 
+            _mapper.Map(dto, existing);
             existing.PrivilegeName = dto.PrivilegeName.ToLower();
             await _privilegeRepo.UpdatePrivilegeRoleAsync(id, existing);
 

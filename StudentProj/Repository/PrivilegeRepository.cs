@@ -2,16 +2,18 @@ using Microsoft.EntityFrameworkCore;
 using StudentProj.Data;
 using StudentProj.Models;
 using StudentProj.Repository_Interface;
-using Microsoft.Extensions.Caching.Memory;
+// using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Caching.Distributed;
 
 namespace StudentProj.Repository
 {
     public class PrivilegeRepository : IPrivilegeRepository
     {
         private readonly StudentDbcontext _dbcontext;
-        private readonly IMemoryCache _cache;
+        // private readonly IMemoryCache _cache;
+        private readonly IDistributedCache _cache;
 
-        public PrivilegeRepository(StudentDbcontext dbcontext, IMemoryCache cache) 
+        public PrivilegeRepository(StudentDbcontext dbcontext, IDistributedCache cache) 
         {
             _dbcontext = dbcontext;
             _cache = cache;
@@ -37,7 +39,8 @@ namespace StudentProj.Repository
             var role = await _dbcontext.Roles.FindAsync(roleId);
             if (role != null)
             {
-                _cache.Remove($"Permissions_Role_{role.RoleName}");
+                // _cache.Remove($"Permissions_Role_{role.RoleName}");
+                await _cache.RemoveAsync($"Permissions_Role_{role.RoleName}");
             }
         }
 

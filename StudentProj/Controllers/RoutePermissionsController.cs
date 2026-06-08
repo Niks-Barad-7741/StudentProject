@@ -11,6 +11,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using AutoMapper;
 
 namespace StudentProj.Controllers
 {
@@ -21,11 +22,13 @@ namespace StudentProj.Controllers
     {
         private readonly IRoutePermissionRepository _repo;
         private readonly IValidator<RoutePermissionDTO> _validator;
+        private readonly IMapper _mapper;
 
-        public RoutePermissionsController(IRoutePermissionRepository repo, IValidator<RoutePermissionDTO> validator)
+        public RoutePermissionsController(IRoutePermissionRepository repo, IValidator<RoutePermissionDTO> validator, IMapper mapper)
         {
             _repo = repo;
             _validator = validator;
+            _mapper = mapper;
         }
 
         // GET all route permissions
@@ -83,13 +86,8 @@ namespace StudentProj.Controllers
                 return StatusCode(error.StatusCodes, error);
             }
 
-            var entity = new RoutePermissions
-            {
-                HttpMethod = dto.HttpMethod.ToUpperInvariant(),
-                PathPattern = dto.PathPattern,
-                RequiredMenuName = dto.RequiredMenuName,
-                RequiredPrivilegeName = dto.RequiredPrivilegeName
-            };
+            var entity = _mapper.Map<RoutePermissions>(dto);
+            entity.HttpMethod = dto.HttpMethod.ToUpperInvariant();
 
             var created = await _repo.CreateRoutePermissionAsync(entity);
             var response = ApiResponse<RoutePermissions>.Create(ResponseStatus.RoleCreatedSuccessfully, "Route permission created successfully.", created);
@@ -136,10 +134,8 @@ namespace StudentProj.Controllers
                 }
             }
 
+            _mapper.Map(dto, existing);
             existing.HttpMethod = dto.HttpMethod.ToUpperInvariant();
-            existing.PathPattern = dto.PathPattern;
-            existing.RequiredMenuName = dto.RequiredMenuName;
-            existing.RequiredPrivilegeName = dto.RequiredPrivilegeName;
 
             await _repo.UpdateRoutePermissionAsync(id, existing);
             var response = ApiResponse<object>.Create(ResponseStatus.UserUpdatedSuccessfully, "Route permission updated successfully.");

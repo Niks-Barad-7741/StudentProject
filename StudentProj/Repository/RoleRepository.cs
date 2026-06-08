@@ -2,16 +2,18 @@ using Microsoft.EntityFrameworkCore;
 using StudentProj.Data;
 using StudentProj.Models;
 using StudentProj.Repository_Interface;
-using Microsoft.Extensions.Caching.Memory;
+// using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Caching.Distributed;
 
 namespace StudentProj.Repository
 {
     public class RoleRepository : IRoleRepository
     {
         private readonly StudentDbcontext _dbcontext;
-        private readonly IMemoryCache _cache;
+        // private readonly IMemoryCache _cache;
+        private readonly IDistributedCache _cache;
 
-        public RoleRepository(StudentDbcontext dbcontext, IMemoryCache cache)
+        public RoleRepository(StudentDbcontext dbcontext, IDistributedCache cache)
         {
             _dbcontext = dbcontext;
             _cache = cache;
@@ -77,7 +79,8 @@ namespace StudentProj.Repository
             _dbcontext.Roles.Update(role);
             await _dbcontext.SaveChangesAsync();
 
-            _cache.Remove($"Permissions_Role_{role.RoleName}");
+            // _cache.Remove($"Permissions_Role_{role.RoleName}");
+            await _cache.RemoveAsync($"Permissions_Role_{role.RoleName}");
             return true;
         }
 
@@ -95,13 +98,15 @@ namespace StudentProj.Repository
             var oldRole = await _dbcontext.Roles.AsNoTracking().FirstOrDefaultAsync(r => r.Id == id);
             if (oldRole != null)
             {
-                _cache.Remove($"Permissions_Role_{oldRole.RoleName}");
+                // _cache.Remove($"Permissions_Role_{oldRole.RoleName}");
+                await _cache.RemoveAsync($"Permissions_Role_{oldRole.RoleName}");
             }
 
             _dbcontext.Roles.Update(role);
             await _dbcontext.SaveChangesAsync();
 
-            _cache.Remove($"Permissions_Role_{role.RoleName}");
+            // _cache.Remove($"Permissions_Role_{role.RoleName}");
+            await _cache.RemoveAsync($"Permissions_Role_{role.RoleName}");
             return role.Id == id;
         }
 

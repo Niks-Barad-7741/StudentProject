@@ -14,6 +14,7 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using System;
 using StudentProj.Repository_Interface;
+using AutoMapper;
 
 namespace StudentProj.Controllers
 {
@@ -26,17 +27,20 @@ namespace StudentProj.Controllers
         private readonly IRegisterRepository _auth;
         private readonly ILoggingService _logging;
         private readonly IValidator<RoleDTO> _validator;
+        private readonly IMapper _mapper;
 
         public RoleController(
             IRoleRepository role,
             IRegisterRepository auth,
             ILoggingService logging,
-            IValidator<RoleDTO> validator)
+            IValidator<RoleDTO> validator,
+            IMapper mapper)
         {
             _role = role;
             _auth = auth;
             _logging = logging;
             _validator = validator;
+            _mapper = mapper;
         }
 
         [HttpGet]
@@ -46,12 +50,7 @@ namespace StudentProj.Controllers
             var roles = await _role.GetAllRolesAsync();
 
             // map to response DTO
-            var response = roles.Select(r =>
-                new RoleResponseDTO
-                {
-                    Id = r.Id,
-                    RoleName = r.RoleName
-                }).ToList();
+            var response = _mapper.Map<IEnumerable<RoleResponseDTO>>(roles).ToList();
 
             var success = ApiResponse<IEnumerable<RoleResponseDTO>>.Create(ResponseStatus.RoleRetriveSuccessfully, response);
             return StatusCode(success.StatusCodes, success);
@@ -76,11 +75,7 @@ namespace StudentProj.Controllers
                 return StatusCode(error.StatusCodes, error);
             }
 
-            var responseDTO = new RoleResponseDTO
-            {
-                Id = role.Id,
-                RoleName = role.RoleName
-            };
+            var responseDTO = _mapper.Map<RoleResponseDTO>(role);
 
             var success = ApiResponse<RoleResponseDTO>.Create(ResponseStatus.RoleRetriveSuccessfully, responseDTO);
             return StatusCode(success.StatusCodes, success);
@@ -110,17 +105,11 @@ namespace StudentProj.Controllers
             }
 
             // create role
-            var role = new Roles
-            {
-                RoleName = char.ToUpper(dto.RoleName[0]) + dto.RoleName.Substring(1).ToLower()
-            };
+            var role = _mapper.Map<Roles>(dto);
+            role.RoleName = char.ToUpper(dto.RoleName[0]) + dto.RoleName.Substring(1).ToLower();
 
             var created = await _role.CreateRoleAsync(role);
-            var responseDTO = new RoleResponseDTO
-            {
-                Id = created.Id,
-                RoleName = created.RoleName
-            };
+            var responseDTO = _mapper.Map<RoleResponseDTO>(created);
 
             var success = ApiResponse<RoleResponseDTO>.Create(ResponseStatus.RoleCreatedSuccessfully, responseDTO);
             return CreatedAtAction(nameof(GetRoleById), new { id = created.Id }, success);
@@ -184,6 +173,7 @@ namespace StudentProj.Controllers
                 return StatusCode(error.StatusCodes, error);
             }
 
+            _mapper.Map(dto, existingRole);
             existingRole.RoleName = formattedName;
             await _role.UpdateRoleAsync(id, existingRole);
 

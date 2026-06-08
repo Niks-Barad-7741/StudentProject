@@ -36,6 +36,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseSerilog();
 
 builder.Services.AddMemoryCache();
+builder.Services.AddAutoMapper(cfg => cfg.AddProfile<StudentProj.Mapping.MappingProfile>());
 
 // Add validator services to the container.
 builder.Services.AddFluentValidationAutoValidation();
@@ -46,6 +47,14 @@ builder.Services.AddScoped<IValidator<AssignRoleDTO>, AssignRoleValidator>();
 builder.Services.AddScoped<IValidator<RoleDTO>, RoleValidator>();
 builder.Services.AddScoped<IValidator<PrivilegeDTO>, PrivilegeValidator>();
 builder.Services.AddScoped<IValidator<RoutePermissionDTO>, RoutePermissionValidator>();
+
+//redis connection
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration =
+    builder.Configuration.GetConnectionString("RedisConnection");
+    options.InstanceName = "StudentProj_";
+});
 
 
 builder.Services.AddControllers().AddNewtonsoftJson();
