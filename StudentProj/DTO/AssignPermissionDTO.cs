@@ -1,9 +1,9 @@
 namespace StudentProj.DTO
 {
-    public class AssignPrivilegeDTO
+    public class AssignPermissionDTO
     {
         public int RoleId { get; set; }
-        public string PrivilegeIds { get; set; }
+        public string PermissionIds { get; set; }
         public int MenuId { get; set; }
     }
 }

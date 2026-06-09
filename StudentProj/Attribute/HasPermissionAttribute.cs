@@ -79,13 +79,13 @@ namespace StudentProj.Attributes
                 if (!cache.TryGetValue(cacheKey, out List<string>? rolePermissions) || rolePermissions == null)
                 {
                     // Cache Miss: Query SQL Server Database for this role's active permissions
-                    rolePermissions = await dbContext.RolePrivileges
+                    rolePermissions = await dbContext.RolePermissions
                         .Where(rp => rp.Role.RoleName == role 
                                   && !rp.IsDeleted 
                                   && !rp.Role.IsDeleted 
-                                  && !rp.Privilege.IsDeleted 
+                                  && !rp.Permission.IsDeleted 
                                   && rp.Menu != null && !rp.Menu.IsDeleted)
-                        .Select(rp => $"{rp.Privilege!.PrivilegeName}:{rp.Menu!.MenuName}")
+                        .Select(rp => $"{rp.Permission!.PermissionName}:{rp.Menu!.MenuName}")
                         .Distinct()
                         .ToListAsync();
 

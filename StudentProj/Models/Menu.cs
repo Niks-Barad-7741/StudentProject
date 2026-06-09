@@ -21,6 +21,6 @@ namespace StudentProj.Models
 
         public DateTime? DeletedAt { get; set; }
 
-        public ICollection<RolePrivileges> RolePrivileges { get; set; }
+        public ICollection<RolePermissions> RolePermissions { get; set; }
     }
 }

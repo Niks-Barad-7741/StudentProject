@@ -35,17 +35,17 @@ namespace StudentProj.Repository
         {
             return await _dbcontext.StudentRoles
                 .Where(n => n.StudentId == studentId && !n.IsDeleted && !n.Role.IsDeleted)
-                .SelectMany(n => _dbcontext.RolePrivileges
+                .SelectMany(n => _dbcontext.RolePermissions
                     .Where(nb => nb.RoleId == n.RoleId
                         && !nb.IsDeleted
-                        && !nb.Privilege.IsDeleted
+                        && !nb.Permission.IsDeleted
                         && nb.Menu != null && !nb.Menu.IsDeleted)
                     .Select(nb => new UserMenuPermissionDTO
                     {
                         MenuId = nb.Menu!.Id,
                         MenuName = nb.Menu.MenuName,
                         MenuRoute = nb.Menu.MenuRoute,
-                        Permission = nb.Privilege!.PrivilegeName
+                        Permission = nb.Permission!.PermissionName
                     }))
                 .Distinct()
                 .ToListAsync();

@@ -56,7 +56,7 @@ namespace StudentProj.Controllers
             var item = await _repo.GetRoutePermissionByIdAsync(id);
             if (item == null)
             {
-                var error = ApiResponse<object>.Create(ResponseStatus.PrivilegeNotFound, $"Route permission with ID {id} not found.");
+                var error = ApiResponse<object>.Create(ResponseStatus.PermissionNotFound, $"Route permission with ID {id} not found.");
                 return StatusCode(error.StatusCodes, error);
             }
 
@@ -118,7 +118,7 @@ namespace StudentProj.Controllers
             var existing = await _repo.GetRoutePermissionByIdAsync(id);
             if (existing == null)
             {
-                var error = ApiResponse<object>.Create(ResponseStatus.PrivilegeNotFound, $"Route permission with ID {id} not found.");
+                var error = ApiResponse<object>.Create(ResponseStatus.PermissionNotFound, $"Route permission with ID {id} not found.");
                 return StatusCode(error.StatusCodes, error);
             }
 
@@ -157,7 +157,7 @@ namespace StudentProj.Controllers
             var deleted = await _repo.DeleteRoutePermissionAsync(id);
             if (!deleted)
             {
-                var error = ApiResponse<object>.Create(ResponseStatus.PrivilegeNotFound, $"Route permission with ID {id} not found.");
+                var error = ApiResponse<object>.Create(ResponseStatus.PermissionNotFound, $"Route permission with ID {id} not found.");
                 return StatusCode(error.StatusCodes, error);
             }
 

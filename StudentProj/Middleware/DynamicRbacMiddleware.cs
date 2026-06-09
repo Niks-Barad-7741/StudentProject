@@ -84,18 +84,18 @@ namespace StudentProj.Middleware
                 NormalizePath(rp.PathPattern) == normalizedTemplate);
 
             string requiredMenu;
-            string requiredPrivilege;
+            string requiredPermission;
 
             if (match != null)
             {
                 requiredMenu = match.RequiredMenuName;
-                requiredPrivilege = match.RequiredPrivilegeName;
+                requiredPermission = match.RequiredPermissionName;
             }
             else
             {
                 // FALLBACK CONVENTIONS (Option B / Convention-Based)
-                // 1. Resolve Privilege Name from HTTP Method
-                requiredPrivilege = httpMethod.ToUpperInvariant() switch
+                // 1. Resolve Permission Name from HTTP Method
+                requiredPermission = httpMethod.ToUpperInvariant() switch
                 {
                     "GET" => "Read",
                     "POST" => "Create",
@@ -113,26 +113,18 @@ namespace StudentProj.Middleware
                     controllerName = segments.LastOrDefault() ?? "Unknown";
                 }
 
-                // Normalise controller name: e.g. "Student" -> "Students", "Role" -> "Roles", "Menu" -> "Menus", "Privileges" -> "Privileges"
+                // Normalise controller name: e.g. "Student" -> "Students", "Role" -> "Roles", "Menu" -> "Menus", "Permissions" -> "Permissions"
                 // Let's apply standard mapping so conventions work seamlessly with database seeded menu names.
                 requiredMenu = NormalizeControllerToMenuName(controllerName);
             }
 
             // Check if user has permission
-            var userIdClaim = context.User.FindFirst("Id")?.Value;
-            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int studentId))
-            {
-                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                await WriteErrorResponse(context, StatusCodes.Status401Unauthorized, "Invalid user identifier claim.");
-                return;
-            }
-
-            bool hasAccess = await CheckUserPermissionAsync(dbContext, studentId, requiredMenu, requiredPrivilege);
+            bool hasAccess = await CheckUserPermissionAsync(dbContext, context.User, requiredMenu, requiredPermission);
 
             if (!hasAccess)
             {
                 context.Response.StatusCode = StatusCodes.Status403Forbidden;
-                await WriteErrorResponse(context, StatusCodes.Status403Forbidden, $"Forbidden. Required permission: {requiredPrivilege} on {requiredMenu}.");
+                await WriteErrorResponse(context, StatusCodes.Status403Forbidden, $"Forbidden. Required permission: {requiredPermission} on {requiredMenu}.");
                 return;
             }
 
@@ -156,8 +148,8 @@ namespace StudentProj.Middleware
                 return "Roles";
             if (controllerName.Equals("Menu", StringComparison.OrdinalIgnoreCase))
                 return "Menus";
-            if (controllerName.Equals("Privilege", StringComparison.OrdinalIgnoreCase) || controllerName.Equals("Privileges", StringComparison.OrdinalIgnoreCase))
-                return "Privileges";
+            if (controllerName.Equals("Permission", StringComparison.OrdinalIgnoreCase) || controllerName.Equals("Permissions", StringComparison.OrdinalIgnoreCase))
+                return "Permissions";
 
             return controllerName;
         }
@@ -201,49 +193,78 @@ namespace StudentProj.Middleware
             return dbList;
         }
 
-        private async Task<bool> CheckUserPermissionAsync(StudentDbcontext dbContext, int studentId, string menuName, string privilegeName)
+        private async Task<bool> CheckUserPermissionAsync(StudentDbcontext dbContext, ClaimsPrincipal user, string menuName, string permissionName)
         {
-            string cacheKey = $"{CacheKeyPrefix}{studentId}_{menuName}_{privilegeName}";
-
             /* -- Older Memory Cache Implementation --
+            string cacheKey = $"{CacheKeyPrefix}{studentId}_{menuName}_{permissionName}";
             if (_cache.TryGetValue(cacheKey, out bool hasPermission))
             {
                 return hasPermission;
             }
             ------------------------------------------- */
 
-            // New Redis Caching Implementation: Get from Redis
-            var cachedVal = await _cache.GetStringAsync(cacheKey);
-            if (cachedVal != null)
+            var roles = user.Claims
+                .Where(c => c.Type == ClaimTypes.Role || c.Type == "role")
+                .Select(c => c.Value)
+                .ToList();
+
+            if (!roles.Any())
             {
-                return bool.Parse(cachedVal);
+                return false;
             }
 
-            // DB check
-            bool hasPermission = await dbContext.StudentRoles
-                .Where(sr => sr.StudentId == studentId && !sr.IsDeleted && !sr.Role.IsDeleted)
-                .SelectMany(sr => dbContext.RolePrivileges
-                    .Where(rp => rp.RoleId == sr.RoleId 
-                        && !rp.IsDeleted 
-                        && !rp.Privilege.IsDeleted 
-                        && rp.Menu != null && !rp.Menu.IsDeleted)
-                    .Select(rp => new { MenuName = rp.Menu!.MenuName, PrivilegeName = rp.Privilege!.PrivilegeName }))
-                .AnyAsync(p => p.MenuName.ToLower() == menuName.ToLower() && p.PrivilegeName.ToLower() == privilegeName.ToLower());
+            string requiredPermission = $"{permissionName}:{menuName}";
+            bool hasAccess = false;
 
-            /* -- Older Memory Cache Implementation --
-            var cacheOptions = new MemoryCacheEntryOptions()
-                .SetAbsoluteExpiration(TimeSpan.FromSeconds(30));
-            _cache.Set(cacheKey, hasPermission, cacheOptions);
-            ------------------------------------------- */
-
-            // New Redis Caching Implementation: Save to Redis
-            var cacheOptions = new DistributedCacheEntryOptions
+            foreach (var role in roles)
             {
-                AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(30)
-            };
-            await _cache.SetStringAsync(cacheKey, hasPermission.ToString(), cacheOptions);
+                string cacheKey = $"Permissions_Role_{role}";
 
-            return hasPermission;
+                // New Redis Caching Implementation: Get from Redis
+                var cachedJson = await _cache.GetStringAsync(cacheKey);
+                List<string>? rolePermissions = null;
+
+                if (!string.IsNullOrEmpty(cachedJson))
+                {
+                    try
+                    {
+                        rolePermissions = JsonSerializer.Deserialize<List<string>>(cachedJson);
+                    }
+                    catch
+                    {
+                        // Fallback to null on deserialization error
+                    }
+                }
+
+                if (rolePermissions == null)
+                {
+                    // Cache Miss: Query SQL Server Database for this role's active permissions
+                    rolePermissions = await dbContext.RolePermissions
+                        .Where(rp => rp.Role.RoleName == role 
+                                  && !rp.IsDeleted 
+                                  && !rp.Role.IsDeleted 
+                                  && !rp.Permission.IsDeleted 
+                                  && rp.Menu != null && !rp.Menu.IsDeleted)
+                        .Select(rp => $"{rp.Permission!.PermissionName}:{rp.Menu!.MenuName}")
+                        .Distinct()
+                        .ToListAsync();
+
+                    // New Redis Caching Implementation: Save to Redis
+                    var cacheOptions = new DistributedCacheEntryOptions
+                    {
+                        AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(30)
+                    };
+                    await _cache.SetStringAsync(cacheKey, JsonSerializer.Serialize(rolePermissions), cacheOptions);
+                }
+
+                if (rolePermissions.Any(p => p.Equals(requiredPermission, StringComparison.OrdinalIgnoreCase)))
+                {
+                    hasAccess = true;
+                    break;
+                }
+            }
+
+            return hasAccess;
         }
 
         private async Task WriteErrorResponse(HttpContext context, int statusCode, string message)

@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Globalization;
 using Newtonsoft.Json;
@@ -22,6 +22,6 @@ namespace StudentProj.Models
         [JsonIgnore]
         public ICollection<StudentRoles> StudentRoles { get; set; }
 
-        public ICollection<RolePrivileges> RolePrivileges { get; set; }
+        public ICollection<RolePermissions> RolePermissions { get; set; }
     }
 }

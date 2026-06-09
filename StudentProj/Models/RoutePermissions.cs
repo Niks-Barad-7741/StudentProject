@@ -23,6 +23,6 @@ namespace StudentProj.Models
 
         [Required]
         [StringLength(50)]
-        public string RequiredPrivilegeName { get; set; } = string.Empty; // e.g. "Write", "Read"
+        public string RequiredPermissionName { get; set; } = string.Empty; // e.g. "Write", "Read"
     }
 }

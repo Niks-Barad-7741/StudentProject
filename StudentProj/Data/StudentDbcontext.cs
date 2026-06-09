@@ -11,8 +11,8 @@ namespace StudentProj.Data
         public DbSet<Student> Student { get; set; }
         public DbSet<Roles> Roles { get; set; }
         public DbSet<StudentRoles> StudentRoles { get; set; }
-        public DbSet<RolePrivileges> RolePrivileges { get; set; }
-        public DbSet<Privileges> Privileges { get; set; }
+        public DbSet<RolePermissions> RolePermissions { get; set; }
+        public DbSet<Permissions> Permissions { get; set; }
         public DbSet<Menu> Menus { get; set; }
         public DbSet<Logs> Logs { get; set; }
         public DbSet<RoutePermissions> RoutePermissions { get; set; }
@@ -33,10 +33,10 @@ namespace StudentProj.Data
                     .OnDelete(DeleteBehavior.Cascade);
             });
 
-            modelBuilder.Entity<RolePrivileges>(entity =>
+            modelBuilder.Entity<RolePermissions>(entity =>
             {
                 entity.HasOne(rp => rp.Menu)
-                    .WithMany(m => m.RolePrivileges)
+                    .WithMany(m => m.RolePermissions)
                     .HasForeignKey(rp => rp.MenuId)
                     .OnDelete(DeleteBehavior.SetNull);
             });

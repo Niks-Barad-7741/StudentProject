@@ -19,8 +19,8 @@ namespace StudentProj.Mapping
             // Menu mappings
             CreateMap<Menu, MenuDTO>().ReverseMap();
 
-            // Privilege mappings
-            CreateMap<Privileges, PrivilegeDTO>().ReverseMap();
+            // Permission mappings
+            CreateMap<Permissions, PermissionDTO>().ReverseMap();
 
             // Route Permission mappings
             CreateMap<RoutePermissions, RoutePermissionDTO>().ReverseMap();

@@ -88,10 +88,10 @@ namespace StudentProj.Repository
             }
             return await _dbcontext.StudentRoles
                 .Where(n => n.StudentId == userId && !n.IsDeleted && !n.Role.IsDeleted)
-                .SelectMany(n => _dbcontext.RolePrivileges
+                .SelectMany(n => _dbcontext.RolePermissions
                     .Where(nb => nb.RoleId == n.RoleId
                             && !nb.IsDeleted
-                            && !nb.Privilege.IsDeleted
+                            && !nb.Permission.IsDeleted
                             && nb.Menu != null && !nb.Menu.IsDeleted)
                     .Select(n => n.Menu))
                 .Distinct()

@@ -23,10 +23,10 @@ namespace StudentProj.Validators
                 .NotNull().WithMessage("Required Menu Name cannot be null!")
                 .MaximumLength(50).WithMessage("Required Menu Name cannot exceed 50 characters!");
 
-            RuleFor(x => x.RequiredPrivilegeName)
-                .NotEmpty().WithMessage("Required Privilege Name is required!")
-                .NotNull().WithMessage("Required Privilege Name cannot be null!")
-                .MaximumLength(50).WithMessage("Required Privilege Name cannot exceed 50 characters!");
+            RuleFor(x => x.RequiredPermissionName)
+                .NotEmpty().WithMessage("Required Permission Name is required!")
+                .NotNull().WithMessage("Required Permission Name cannot be null!")
+                .MaximumLength(50).WithMessage("Required Permission Name cannot exceed 50 characters!");
         }
     }
 }

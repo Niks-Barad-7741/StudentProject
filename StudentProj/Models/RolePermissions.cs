@@ -1,9 +1,10 @@
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace StudentProj.Models
 {
-    public class RolePrivileges
+    public class RolePermissions
     {
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
@@ -13,7 +14,7 @@ namespace StudentProj.Models
         public int RoleId { get; set; }
 
         [Required]
-        public int PrivilegeId { get; set; }
+        public int PermissionId { get; set; }
 
         public int? MenuId { get; set; }
 
@@ -24,8 +25,8 @@ namespace StudentProj.Models
         [ForeignKey("RoleId")]
         public Roles Role { get; set; }
 
-        [ForeignKey("PrivilegeId")]
-        public Privileges Privilege { get; set; }
+        [ForeignKey("PermissionId")]
+        public Permissions Permission { get; set; }
 
         [ForeignKey("MenuId")]
         public Menu? Menu { get; set; }

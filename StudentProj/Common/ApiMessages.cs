@@ -26,10 +26,10 @@ namespace StudentProj.Common
         public const string RoleUpdatedSuccessfully = "Role Updated Successfully";
         public const string RoleRetriveSuccessfully = "Roles retrieved successfully.";
         
-        // Privilege Operations
-        public const string PrivilegeNotFound = "Privilege Not Found";
-        public const string PrivilegeAssignedSuccessfully = "Privilege Assigned Successfully";
-        public const string PrivilegeRevokedSuccessfully = "Privilege Revoked Successfully";
-        public const string PrivilegeRetriveSuccessfully = "Privileges retrieved successfully.";
+        // Permission Operations
+        public const string PermissionNotFound = "Permission Not Found";
+        public const string PermissionAssignedSuccessfully = "Permission Assigned Successfully";
+        public const string PermissionRevokedSuccessfully = "Permission Revoked Successfully";
+        public const string PermissionRetriveSuccessfully = "Permissions retrieved successfully.";
     }
 }

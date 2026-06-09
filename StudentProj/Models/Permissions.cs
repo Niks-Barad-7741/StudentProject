@@ -1,9 +1,11 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace StudentProj.Models
 {
-    public class Privileges
+    public class Permissions
     {
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
@@ -11,12 +13,12 @@ namespace StudentProj.Models
 
         [Required]
         [StringLength(20)]
-        public string PrivilegeName { get; set; }
+        public string PermissionName { get; set; }
 
         public bool IsDeleted { get; set; } = false;
 
         public DateTime? DeletedAt { get; set; }
 
-        public ICollection<RolePrivileges> RolePrivileges { get; set; }
+        public ICollection<RolePermissions> RolePermissions { get; set; }
     }
 }

@@ -98,7 +98,7 @@ namespace StudentProj.Controllers
             var existingmenu = await _menuRepo.GetMenuByIdAsync(id);
             if (existingmenu == null )
             {
-                var error = ApiResponse<object>.Create(ResponseStatus.PrivilegeNotFound, $"Menu With ID {id} not found.");
+                var error = ApiResponse<object>.Create(ResponseStatus.PermissionNotFound, $"Menu With ID {id} not found.");
                 return StatusCode(error.StatusCodes, error);
             }
             var nameExists = await _menuRepo.MenuExistsAsync(dto.MenuName);
@@ -128,7 +128,7 @@ namespace StudentProj.Controllers
             var result = await _menuRepo.DeleteMenuAsync(id);
             if (!result)
             {
-                var error = ApiResponse<object>.Create(ResponseStatus.PrivilegeNotFound, $"Menu with ID {id} not found.");
+                var error = ApiResponse<object>.Create(ResponseStatus.PermissionNotFound, $"Menu with ID {id} not found.");
                 return StatusCode(error.StatusCodes, error);
             }
 
