@@ -14,6 +14,9 @@ using Microsoft.Extensions.Configuration;
 using System.Net.Mail;
 using System.Net;
 using StudentProj.Repository_Interface;
+using Microsoft.Extensions.Caching.Distributed;
+using StackExchange.Redis;
+using Microsoft.EntityFrameworkCore.Storage.Json;
 
 namespace StudentProj.Controllers
 {
@@ -27,6 +30,7 @@ namespace StudentProj.Controllers
         private readonly ILoggingService _logging;
         private readonly IStudent _student;
         private readonly IConfiguration _config;
+        private readonly IDistributedCache _cache;
 
         public AuthController(
             IRegisterRepository auth,
@@ -34,7 +38,8 @@ namespace StudentProj.Controllers
             JwtService JWT_service,
             ILoggingService logging,
             IStudent student,
-            IConfiguration config)
+            IConfiguration config,
+            IDistributedCache cache)
         {
             _auth = auth;
             _login = login;
@@ -42,6 +47,7 @@ namespace StudentProj.Controllers
             _logging = logging;
             _student = student;
             _config = config;
+            _cache = cache;
         }
 
         [HttpPost("register")]
@@ -151,6 +157,13 @@ namespace StudentProj.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult> ForgotPassword([FromBody] ForgotPasswordDTO dto)
         {
+            var ipaddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "user";
+            var (allowed, limitMessage) = await IsRateLimitAllowedAsync(ipaddress, dto.Email);
+            if (!allowed)
+            {
+                var errorresponse = ApiResponse<object>.Create(ResponseStatus.BadRequest, limitMessage);
+                return StatusCode(StatusCodes.Status429TooManyRequests, errorresponse);
+            }
             var student = await _login.GetStudentbyemailasync(dto.Email);
             if (student == null)
             {
@@ -164,6 +177,7 @@ namespace StudentProj.Controllers
                 var errorResponse = ApiResponse<object>.Create(ResponseStatus.BadRequest, "An active OTP was already sent. Please wait 1 minute before requesting a new one.");
                 return StatusCode(errorResponse.StatusCodes, errorResponse);
             }
+            await IncrementOTPCounterAsync(ipaddress, dto.Email);
 
             // Generate 6-digit OTP
             var otp = new Random().Next(100000, 999999).ToString();
@@ -300,5 +314,50 @@ namespace StudentProj.Controllers
             var success = ApiResponse<LoginResponseDTO>.Create(ResponseStatus.UserLoginSuccessfully, responseData);
             return StatusCode(success.StatusCodes, success);
         }
+
+
+        private async Task<(bool allowed, string message)> IsRateLimitAllowedAsync(string IpAddress, string email) 
+        {
+            var ipkey = $"otp_limit:ip:{IpAddress}";
+            var emailkey = $"otp_limit:email:{email.Trim().ToLowerInvariant()}";
+
+            var ipCounterStr = await _cache.GetStringAsync(ipkey);
+            if (ipCounterStr != null && int.TryParse(ipCounterStr,out int ipCount) && ipCount >= 3)
+            {
+                return (false, "Too Many OTP Requests from this IP.Try again after 10 minutes");
+            }
+            var emailCounterStr = await _cache.GetStringAsync(emailkey);
+            if (emailCounterStr != null && int.TryParse(emailCounterStr,out int emailcount) && emailcount >=5)
+            {
+                return (false, "Too Many OTP from This Email,Please Try again in After 1 Hour");                
+            }
+            return (true, string.Empty);
+        }
+        private async Task IncrementOTPCounterAsync(string IpAddress, string email) 
+        {
+            var ipkey = $"otp_limit:ip:{IpAddress}";
+            var emailkey = $"otp_limit:email:{email.Trim().ToLowerInvariant()}";
+
+            await IncrementLimitCounterAsync(ipkey, TimeSpan.FromMinutes(10));
+            await IncrementLimitCounterAsync(emailkey, TimeSpan.FromHours(1));
+        }
+
+        private async Task IncrementLimitCounterAsync(string key, TimeSpan expiry) 
+        {
+            var currentStr = await _cache.GetStringAsync(key);
+            int current = 0;
+
+            if (currentStr != null && int.TryParse(currentStr, out int val)) 
+            {
+                current = val;
+            }
+            current++;
+
+            var cacheOptions = new DistributedCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = expiry
+            };
+            await _cache.SetStringAsync(key, current.ToString(), cacheOptions);
+        } 
     }
 }
