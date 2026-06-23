@@ -16,6 +16,10 @@ namespace StudentProj.Data
         public DbSet<Menu> Menus { get; set; }
         public DbSet<Logs> Logs { get; set; }
         public DbSet<RoutePermissions> RoutePermissions { get; set; }
+        public DbSet<Subject> Subject { get; set; }
+        public DbSet<Course> Course { get; set; }
+        public DbSet<Attendance> Attendance { get; set; }
+        public DbSet<Enrollment> Enrollment { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder) 
         {
@@ -46,6 +50,14 @@ namespace StudentProj.Data
                 new Roles { Id = 2, RoleName = "Admin" ,IsDeleted = false },
                 new Roles { Id = 3, RoleName = "User", IsDeleted = false }
             );
+
+            modelBuilder.Entity<Attendance>(entity =>
+            {
+                entity.HasOne(n => n.Subject)
+                .WithMany()
+                .HasForeignKey(n => n.SubjectId)
+                .OnDelete(DeleteBehavior.NoAction);
+            });
         }
     }
 }
