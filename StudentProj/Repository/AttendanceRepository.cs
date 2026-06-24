@@ -2,8 +2,10 @@
 using Microsoft.EntityFrameworkCore;
 using StudentProj.Data;
 using StudentProj.DTO;
+using StudentProj.Enums;
 using StudentProj.Models;
 using StudentProj.Repository_Interface;
+using StudentProj.Common;
 
 namespace StudentProj.Repository
 {
@@ -20,11 +22,16 @@ namespace StudentProj.Repository
 
         public async Task<IEnumerable<AttendanceDTO>> GetBySubjectIdAsync(int subjectId, DateTime date)
         {
-            var attendance = await _dbcontext.Attendance
+                var attendance = await _dbcontext.Attendance
                 .Include(n => n.Student)
                 .Include(n => n.Subject)
-                .Where(n => n.SubjectId == subjectId && n.Date.Date == date.Date && !n.IsDeleted)
+                .Where(n =>
+                n.SubjectId == subjectId &&
+                n.Date.Date == date.Date &&
+                !n.IsDeleted &&
+                !n.Subject.IsDeleted)
                 .ToListAsync();
+               
 
             return _mapper.Map<IEnumerable<AttendanceDTO>>(attendance);
         }
@@ -57,17 +64,40 @@ namespace StudentProj.Repository
 
         public async Task<AttendanceDTO> RecordAsync(RecordAttendanceDTO dto)
         {
-            var exists = await _dbcontext.Attendance
-                .AnyAsync(n => n.StudentId == dto.StudentId && n.SubjectId == dto.SubjectId && n.Date.Date == dto.Date.Date && !n.IsDeleted);
+            var subject = await _dbcontext.Subject
+                .FirstOrDefaultAsync(n => n.Id == dto.SubjectId && !n.IsDeleted);
 
-            if (exists)
+            if (subject == null) 
             {
                 return null;
+                //var error = ApiResponse<object>.Create(ResponseStatus.NotFound, "Subject not found");
+                //return StatusCode(error.StatusCodes);
+            }
+
+            var exists = await _dbcontext.Attendance
+                .FirstOrDefaultAsync(n => n.StudentId == dto.StudentId
+                && n.SubjectId == dto.SubjectId 
+                && n.Date.Date == dto.Date.Date 
+                && !n.IsDeleted);
+
+            if (exists != null)
+            {
+                exists.Status = dto.Status;
+
+                await _dbcontext.SaveChangesAsync();
+
+                var updated = await _dbcontext.Attendance
+                    .Include(n => n.Student)
+                    .Include(n => n.Subject)
+                    .FirstOrDefaultAsync(n => n.Id == exists.Id);
+                return _mapper.Map<AttendanceDTO>(updated);
             }
 
             var attendance = _mapper.Map<Attendance>(dto);
+            attendance.Date = DateTimeHelper.GetIndianStandardTime();
+
             _dbcontext.Attendance.Add(attendance);
-            _dbcontext.SaveChangesAsync();
+            await _dbcontext.SaveChangesAsync();
 
             var created = await _dbcontext.Attendance
                 .Include(n => n.Student)

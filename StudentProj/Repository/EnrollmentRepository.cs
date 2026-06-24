@@ -4,6 +4,7 @@ using StudentProj.Data;
 using StudentProj.DTO;
 using StudentProj.Models;
 using StudentProj.Repository_Interface;
+using StudentProj.Common;
 
 namespace StudentProj.Repository
 {
@@ -28,6 +29,8 @@ namespace StudentProj.Repository
                 return null;
             }
             var enrollment = _mapper.Map<Enrollment>(dto);
+
+            enrollment.EnrolledAt = DateTimeHelper.GetIndianStandardTime();
             enrollment.EnrolledAt = DateTime.UtcNow;
             _dbcontext.Enrollment.Add(enrollment);
             await _dbcontext.SaveChangesAsync();
