@@ -32,7 +32,8 @@ namespace StudentProj.Mapping
 
             //Subject Mapping
             CreateMap<Subject, SubjectDTO>().ReverseMap();
-            CreateMap<CreateSubjectDTO, Subject>();
+            CreateMap<CreateSubjectDTO, Subject>().ReverseMap();
+            CreateMap<UpdateSubjectDTO, Subject>().ReverseMap();
 
             //Enrollment Mapping
             CreateMap<EnrollStudentDTO, Enrollment>();

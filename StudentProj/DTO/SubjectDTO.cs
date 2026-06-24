@@ -22,4 +22,16 @@ namespace StudentProj.DTO
         [Required]
         public int CourseId { get; set; }
     }
+    public class UpdateSubjectDTO
+    {
+        [Required]
+        [StringLength(50)]
+        public string SubjectName { get; set; }
+
+        [Required]
+        public int SubjectCode { get; set; }
+
+        [Required]
+        public int CourseId { get; set; }
+    }
 }
