@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using StudentProj.Data;
 using StudentProj.DTO;
 using StudentProj.Repository_Interface;
+using StudentProj.Common;
 
 namespace StudentProj.Repository
 {
@@ -30,11 +31,14 @@ namespace StudentProj.Repository
             }
             if (query.FromDate.HasValue)
             {
-                logs = logs.Where(n => n.Timestamp >= query.FromDate.Value);
+                var fromDate = query.FromDate.Value.Date;
+                logs = logs.Where(n => n.Timestamp >= fromDate);
             }
             if (query.ToDate.HasValue)
             {
-                logs = logs.Where(n => n.Timestamp <= query.ToDate.Value);
+                var toDate = query.ToDate.Value.Date
+                .AddDays(1).AddTicks(-1);
+                logs = logs.Where(n => n.Timestamp <= toDate);
             }
 
             var result = await logs

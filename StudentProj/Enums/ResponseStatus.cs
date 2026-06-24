@@ -41,6 +41,7 @@ namespace StudentProj.Enums
         AttendanceAddedSuccessfully,
         AttendanceRetriveSuccessfully,
         AttendanceDeletedSuccessfully,
+        AttendanceFound,
         SubjectNotFound,
         SubjectAddedSuccessfully,
         SubjectUpdatedSuccessfully,
@@ -51,7 +52,8 @@ namespace StudentProj.Enums
         SubjectNotBelongsToCourse,
         SubjectAlreadyEnrolled,
         SubjectNotEnrolled,
-
+        LogsRetriveSuccessfully,
+        LogsNotFound,
         // Failure/Validation Operations
         UserAlreadyExist,
         UserNotFound,
@@ -126,6 +128,7 @@ namespace StudentProj.Enums
             ResponseStatus.AttendanceAddedSuccessfully => 201,
             ResponseStatus.AttendanceRetriveSuccessfully => 200,
             ResponseStatus.AttendanceDeletedSuccessfully => 200,
+            ResponseStatus.AttendanceFound => 409,
 
 
             ResponseStatus.SubjectNotFound => 404,
@@ -140,6 +143,9 @@ namespace StudentProj.Enums
             ResponseStatus.SubjectNotEnrolled => 404,
 
             ResponseStatus.InvalidData => 400,
+
+            ResponseStatus.LogsRetriveSuccessfully => 200,
+            ResponseStatus.LogsNotFound => 404,
             _ => 200
         };
 
@@ -201,6 +207,7 @@ namespace StudentProj.Enums
             ResponseStatus.AttendanceAddedSuccessfully => ApiMessages.AttendanceAddedSuccessfully,
             ResponseStatus.AttendanceRetriveSuccessfully => ApiMessages.AttendanceRetriveSuccessfully,
             ResponseStatus.AttendanceDeletedSuccessfully => ApiMessages.AttendanceDeletedSuccessfully,
+            ResponseStatus.AttendanceFound => ApiMessages.AttendanceFound,
 
 
             ResponseStatus.SubjectNotFound => ApiMessages.SubjectNotFound,
@@ -213,6 +220,9 @@ namespace StudentProj.Enums
             ResponseStatus.SubjectNotBelongsToCourse => ApiMessages.SubjectNotBelongsToCourse,
             ResponseStatus.SubjectAlreadyEnrolled => ApiMessages.SubjectAlreadyEnrolled,
             ResponseStatus.SubjectNotEnrolled => ApiMessages.SubjectNotEnrolled,
+
+            ResponseStatus.LogsRetriveSuccessfully => ApiMessages.LogsRetriveSuccessfully,
+            ResponseStatus.LogsNotFound => ApiMessages.LogsNotFound,
 
             _ => status.ToString()
         };

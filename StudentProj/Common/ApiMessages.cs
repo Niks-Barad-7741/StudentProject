@@ -61,6 +61,7 @@ namespace StudentProj.Common
         public const string AttendanceAddedSuccessfully = "Attendance Added Successfully";
         public const string AttendanceRetriveSuccessfully = "Attendance Retrieve Successfully";
         public const string AttendanceDeletedSuccessfully = "Attendance Deleted Successfully";
+        public const string AttendanceFound = "Attendance is already marked for this student";
 
 
         //Subject Operations
@@ -74,6 +75,12 @@ namespace StudentProj.Common
         public const string SubjectNotBelongsToCourse = "Subject does not belong to the specified course.";
         public const string SubjectAlreadyEnrolled = "Student is already enrolled in this subject.";
         public const string SubjectNotEnrolled = "Student is not enrolled in this subject.";
+
+
+        //Logs Operations
+        public const string LogsRetriveSuccessfully = "Logs Retrieve Successfully";
+        public const string LogsNotFound = "Logs Not Found";
+
 
     }
 }
