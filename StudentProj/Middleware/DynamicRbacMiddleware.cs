@@ -1,24 +1,30 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Security.Claims;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 // using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Caching.Distributed;
-using System.Text.Json;
 using StudentProj.Data;
+using StudentProj.DTO;
+using StudentProj.Enums;
 using StudentProj.Models;
+using StudentProj.Services;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Security.Claims;
+using System.Text.Json;
+using System.Threading.Tasks;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace StudentProj.Middleware
 {
     public class DynamicRbacMiddleware
     {
         private readonly RequestDelegate _next;
+        //private readonly ILoggingService _loggingService;
         // private readonly IMemoryCache _cache;
         private readonly IDistributedCache _cache;
         private const string CacheKeyPrefix = "UserPermissions_";
@@ -27,9 +33,10 @@ namespace StudentProj.Middleware
         {
             _next = next;
             _cache = cache;
+            //_loggingService = loggingService;
         }
 
-        public async Task InvokeAsync(HttpContext context, StudentDbcontext dbContext)
+        public async Task InvokeAsync(HttpContext context, StudentDbcontext dbContext, ILoggingService loggingService)
         {
             var endpoint = context.GetEndpoint();
             if (endpoint == null)
@@ -51,9 +58,13 @@ namespace StudentProj.Middleware
             // Ensure user is authenticated
             if (context.User.Identity?.IsAuthenticated != true)
             {
-                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                await WriteErrorResponse(context, StatusCodes.Status401Unauthorized, "Unauthorized access.");
+                var response = ApiResponse<object>.Create(ResponseStatus.Unauthorized);
+                context.Response.StatusCode = response.StatusCodes;
+                await context.Response.WriteAsJsonAsync(response);
                 return;
+                //context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                //await WriteErrorResponse(context, StatusCodes.Status401Unauthorized, "Unauthorized access.");
+                //return;
             }
 
             // Check if Super Admin -> bypass check
@@ -123,9 +134,23 @@ namespace StudentProj.Middleware
 
             if (!hasAccess)
             {
-                context.Response.StatusCode = StatusCodes.Status403Forbidden;
-                await WriteErrorResponse(context, StatusCodes.Status403Forbidden, $"Forbidden. Required permission: {requiredPermission} on {requiredMenu}.");
+                var name = context.User.FindFirst("Name")?.Value ?? context.User.Identity?.Name;
+                var email = context.User.FindFirst("Email")?.Value??context.User.FindFirst(ClaimTypes.Email)?.Value;
+
+                await loggingService.LogActivityAsync(
+                    name,
+                    email,
+                    $"{ResponseStatus.Forbidden.ToFriendlyMessage()} - Required Permission: {requiredPermission} on {requiredMenu}",
+                    context);
+
+                var response = ApiResponse<object>.Create(ResponseStatus.Forbidden, $"{ResponseStatus.Forbidden.ToFriendlyMessage()} Required permission: {requiredPermission} on {requiredMenu}.");
+                context.Response.StatusCode = response.StatusCodes;
+                await context.Response.WriteAsJsonAsync(response);
                 return;
+                //return StatusCode(response.StatusCodes, response);
+                //context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                //await WriteErrorResponse(context, StatusCodes.Status403Forbidden, $"Forbidden. Required permission: {requiredPermission} on {requiredMenu}.");
+                //return;
             }
 
             await _next(context);
@@ -267,19 +292,19 @@ namespace StudentProj.Middleware
             return hasAccess;
         }
 
-        private async Task WriteErrorResponse(HttpContext context, int statusCode, string message)
-        {
-            context.Response.ContentType = "application/json";
+        //private async Task WriteErrorResponse(HttpContext context, int statusCode, string message)
+        //{
+        //    context.Response.ContentType = "application/json";
             
-            var errorResponse = new
-            {
-                statusCodes = statusCode,
-                isSuccess = false,
-                message = message,
-                response = (object?)null
-            };
+        //    var errorResponse = new
+        //    {
+        //        statusCodes = statusCode,
+        //        isSuccess = false,
+        //        message = message,
+        //        response = (object?)null
+        //    };
 
-            await context.Response.WriteAsJsonAsync(errorResponse);
-        }
+        //    await context.Response.WriteAsJsonAsync(errorResponse);
+        //}
     }
 }
