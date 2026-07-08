@@ -157,7 +157,7 @@ namespace StudentProj.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult> ForgotPassword([FromBody] ForgotPasswordDTO dto)
         {
-            var ipaddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "user";
+            var ipaddress = IpHelper.GetClientIpAddress(HttpContext);
             var (allowed, limitMessage) = await IsRateLimitAllowedAsync(ipaddress, dto.Email);
             if (!allowed)
             {
@@ -210,6 +210,10 @@ namespace StudentProj.Controllers
             }
             catch (Exception ex)
             {
+                student.ResetOtp = null;
+                student.ResetOtpExpiry = null;
+                await _student.UpdateStudentasync(student.Id, student);
+
                 var errorResponse = ApiResponse<object>.Create(ResponseStatus.BadRequest, $"Failed to send email. Error: {ex.Message}");
                 return StatusCode(errorResponse.StatusCodes, errorResponse);
             }

@@ -1,12 +1,6 @@
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Net;
-using System.Text.Json;
-using System.Threading.Tasks;
-using StudentProj.Enums;
 using StudentProj.DTO;
+using StudentProj.Enums;
+using System.Text.Json;
 
 namespace StudentProj.Middleware
 {

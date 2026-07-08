@@ -8,7 +8,13 @@ namespace StudentProj.Common
     {
         public static string GetClientIpAddress(HttpContext context)
         {
-            var ip = context.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1";
+            var ip = context.Request.Headers["X-Forwarded-For"].FirstOrDefault();
+            
+            if (string.IsNullOrEmpty(ip))
+            {
+                ip = context.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1";
+            }
+            
             if (ip == "::1" || ip == "127.0.0.1")
             {
                 try
